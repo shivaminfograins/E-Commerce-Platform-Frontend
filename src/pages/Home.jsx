@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Categories from "../components/Categories";
@@ -9,8 +10,9 @@ import CartModal from "../components/CartModal";
 import products from "../data/products";
 import PromotionBanner from "../components/PromotionBanner";
 
-function Home({ cart = {}, setCart }) {
-  const [wishlist, setWishlist] = useState(new Set());
+
+function Home({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser }) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -40,13 +42,11 @@ function Home({ cart = {}, setCart }) {
 
   const handleToggleWishlist = (productId) => {
     setWishlist((prev) => {
-      const updated = new Set(prev);
-      if (updated.has(productId)) {
-        updated.delete(productId);
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
       } else {
-        updated.add(productId);
+        return [...prev, productId];
       }
-      return updated;
     });
   };
 
@@ -71,7 +71,7 @@ function Home({ cart = {}, setCart }) {
   const productsWithMeta = filteredProducts.map((product) => ({
     ...product,
     qty: cart[product.id] || 0,
-    isWishlisted: wishlist.has(product.id),
+    isWishlisted: wishlist.includes(product.id),
   }));
 
   const latestProducts = [...productsWithMeta]
@@ -82,9 +82,13 @@ function Home({ cart = {}, setCart }) {
     <>
       <Navbar
         cartCount={cartCount}
+        wishlistCount={wishlist.length}
         search={search}
         setSearch={setSearch}
         onCartClick={() => setIsCartOpen(true)}
+        onWishlistClick={() => navigate("/wishlist")}
+        user={user}
+        setUser={setUser}
       />
 
       <main className="container">

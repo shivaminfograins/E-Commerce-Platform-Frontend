@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-function Cart({ cart, setCart }) {
+function Cart({ cart, setCart, wishlist = [], user, setUser }) {
+  const navigate = useNavigate();
   const products = [
     { id: 1, name: "iPhone 15 Pro", price: 139999, image: "/images/iphone.jpg" },
     { id: 2, name: "Samsung S24 Ultra", price: 119999, image: "/images/samsung.jpg" },
@@ -70,7 +71,7 @@ function Cart({ cart, setCart }) {
 
   return (
     <>
-      <Navbar cartCount={cartCount} search="" setSearch={() => {}} onCartClick={() => {}} />
+      <Navbar cartCount={cartCount} wishlistCount={wishlist.length} search="" setSearch={() => {}} onCartClick={() => {}} onWishlistClick={() => navigate("/wishlist")} user={user} setUser={setUser} />
 
       <main className="container page-cart-container">
         <h1 className="cart-page-title">Shopping Cart</h1>

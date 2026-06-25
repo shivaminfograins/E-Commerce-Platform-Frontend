@@ -12,7 +12,7 @@ import RelatedProducts from "../components/RelatedProducts";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-function ProductDetails({ cart = {}, setCart }) {
+function ProductDetails({ cart = {}, setCart, wishlist = [], user, setUser }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
@@ -24,7 +24,16 @@ function ProductDetails({ cart = {}, setCart }) {
   if (!product) {
     return (
       <>
-        <Navbar cartCount={cartCount} search="" setSearch={() => {}} onCartClick={() => navigate("/cart")} />
+        <Navbar
+          cartCount={cartCount}
+          wishlistCount={wishlist.length}
+          search=""
+          setSearch={() => {}}
+          onCartClick={() => navigate("/cart")}
+          onWishlistClick={() => navigate("/wishlist")}
+          user={user}
+          setUser={setUser}
+        />
         <div className="container">
           <h2>Product Not Found</h2>
         </div>
@@ -79,7 +88,16 @@ function ProductDetails({ cart = {}, setCart }) {
 
   return (
     <>
-      <Navbar cartCount={cartCount} search="" setSearch={() => {}} onCartClick={() => navigate("/cart")} />
+      <Navbar
+        cartCount={cartCount}
+        wishlistCount={wishlist.length}
+        search=""
+        setSearch={() => {}}
+        onCartClick={() => navigate("/cart")}
+        onWishlistClick={() => navigate("/wishlist")}
+        user={user}
+        setUser={setUser}
+      />
 
       <div className="container">
         <div className="product-details-layout">

@@ -107,11 +107,11 @@ import categories from "../data/categories";
 
 import CategoryCard from "../components/CategoryCard";
 
-function CategoryPage({ cart = {} }) {
+function CategoryPage({ cart = {}, wishlist = [], user, setUser }) {
   const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0);
 
   return (
-    <MainLayout cartCount={cartCount}>
+    <MainLayout cartCount={cartCount} wishlistCount={wishlist.length} user={user} setUser={setUser}>
       <div className="container">
         <div className="page-heading">
           <h1>Shop By Category</h1>

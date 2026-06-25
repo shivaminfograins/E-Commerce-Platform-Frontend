@@ -9,13 +9,12 @@ import ProductList from "../components/ProductList";
 
 import products from "../data/products";
 
-function Products({ cart = {}, setCart }) {
+function Products({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("latest");
   const [priceRange, setPriceRange] = useState("All");
-  const [wishlist, setWishlist] = useState(new Set());
 
   let filteredProducts = [...products];
 
@@ -82,29 +81,31 @@ function Products({ cart = {}, setCart }) {
 
   const handleToggleWishlist = (productId) => {
     setWishlist((prev) => {
-      const updated = new Set(prev);
-      if (updated.has(productId)) {
-        updated.delete(productId);
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
       } else {
-        updated.add(productId);
+        return [...prev, productId];
       }
-      return updated;
     });
   };
 
   const productsWithMeta = filteredProducts.map((product) => ({
     ...product,
     qty: cart[product.id] || 0,
-    isWishlisted: wishlist.has(product.id),
+    isWishlisted: wishlist.includes(product.id),
   }));
 
   return (
     <>
       <Navbar
         cartCount={cartCount}
+        wishlistCount={wishlist.length}
         search={search}
         setSearch={setSearch}
         onCartClick={() => navigate("/cart")}
+        onWishlistClick={() => navigate("/wishlist")}
+        user={user}
+        setUser={setUser}
       />
 
       <div className="container">

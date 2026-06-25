@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import MainLayout from "../layouts/MainLayout";
@@ -7,9 +6,8 @@ import products from "../data/products";
 
 import ProductList from "../components/ProductList";
 
-function CategoryProducts({ cart = {}, setCart }) {
+function CategoryProducts({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser }) {
   const { categoryName } = useParams();
-  const [wishlist, setWishlist] = useState(new Set());
 
   const categoryProducts = products.filter(
     (item) => item.category.toLowerCase() === categoryName.toLowerCase(),
@@ -38,24 +36,22 @@ function CategoryProducts({ cart = {}, setCart }) {
 
   const handleToggleWishlist = (productId) => {
     setWishlist((prev) => {
-      const updated = new Set(prev);
-      if (updated.has(productId)) {
-        updated.delete(productId);
+      if (prev.includes(productId)) {
+        return prev.filter((id) => id !== productId);
       } else {
-        updated.add(productId);
+        return [...prev, productId];
       }
-      return updated;
     });
   };
 
   const productsWithMeta = categoryProducts.map((product) => ({
     ...product,
     qty: cart[product.id] || 0,
-    isWishlisted: wishlist.has(product.id),
+    isWishlisted: wishlist.includes(product.id),
   }));
 
   return (
-    <MainLayout cartCount={cartCount}>
+    <MainLayout cartCount={cartCount} wishlistCount={wishlist.length} user={user} setUser={setUser}>
       <div className="container">
         <div className="page-heading">
           <h1 style={{ textTransform: "capitalize" }}>{categoryName}</h1>
