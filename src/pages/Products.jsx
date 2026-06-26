@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
@@ -6,50 +6,60 @@ import Footer from "../components/Footer";
 import ProductFilters from "../components/ProductFilters";
 import ProductSort from "../components/ProductSort";
 import ProductList from "../components/ProductList";
+import { useCategories } from "../hooks/useCategories";
+import { useProducts } from "../hooks/useProducts";
 
-import products from "../data/products";
-
-function Products({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser }) {
+function Products({
+  cart = {},
+  setCart,
+  wishlist = [],
+  setWishlist,
+  user,
+  setUser,
+}) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState({
+    id: 0,
+    name: "All",
+  });
   const [sortBy, setSortBy] = useState("latest");
   const [priceRange, setPriceRange] = useState("All");
+  const [page, setPage] = useState(1);
 
-  let filteredProducts = [...products];
+  const { categories: apiCategories, loading: loadingCategories } =
+    useCategories();
+  const categories = [{ id: 0, name: "All" }, ...apiCategories];
+  const {
+    products,
+    totalCount,
+    next,
+    previous,
+    loading: loadingProducts,
+    error: productError,
+  } = useProducts(selectedCategory.id, page);
 
-  // Search
-  filteredProducts = filteredProducts.filter((product) =>
-    product.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredProducts = products.filter((product) => {
+    const searchMatch = product.name
+      .toLowerCase()
+      .includes(search.toLowerCase());
+    let priceMatch = true;
 
-  // Category
-  if (selectedCategory !== "All") {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.category === selectedCategory,
-    );
-  }
+    if (priceRange === "under10k") {
+      priceMatch = product.price < 10000;
+    } else if (priceRange === "10kto50k") {
+      priceMatch = product.price >= 10000 && product.price <= 50000;
+    } else if (priceRange === "above50k") {
+      priceMatch = product.price > 50000;
+    }
 
-  // Price
-  if (priceRange === "under10k") {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.price < 10000,
-    );
-  }
+    return searchMatch && priceMatch;
+  });
 
-  if (priceRange === "10kto50k") {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.price >= 10000 && product.price <= 50000,
-    );
-  }
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory]);
 
-  if (priceRange === "above50k") {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.price > 50000,
-    );
-  }
-
-  // Sorting
   if (sortBy === "low") {
     filteredProducts.sort((a, b) => a.price - b.price);
   }
@@ -115,6 +125,7 @@ function Products({ cart = {}, setCart, wishlist = [], setWishlist, user, setUse
           <ProductFilters
             search={search}
             setSearch={setSearch}
+            categories={categories}
             selectedCategory={selectedCategory}
             setSelectedCategory={setSelectedCategory}
             priceRange={priceRange}
@@ -124,12 +135,46 @@ function Products({ cart = {}, setCart, wishlist = [], setWishlist, user, setUse
           <div className="products-content">
             <ProductSort sortBy={sortBy} setSortBy={setSortBy} />
 
-            <ProductList
-              products={productsWithMeta}
-              onAdd={handleAddToCart}
-              onRemove={handleRemoveFromCart}
-              onToggleWishlist={handleToggleWishlist}
-            />
+            {loadingProducts && (
+              <p className="section-message">Loading products...</p>
+            )}
+            {productError && (
+              <p className="section-message section-message--error">
+                {productError}
+              </p>
+            )}
+            {!loadingProducts && !productError && (
+              <>
+                <ProductList
+                  products={productsWithMeta}
+                  onAdd={handleAddToCart}
+                  onRemove={handleRemoveFromCart}
+                  onToggleWishlist={handleToggleWishlist}
+                />
+
+                <div className="pagination-controls">
+                  <button
+                    type="button"
+                    disabled={!previous}
+                    onClick={() =>
+                      setPage((prevPage) => Math.max(prevPage - 1, 1))
+                    }
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {page} of {Math.max(1, Math.ceil(totalCount / 10))}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={!next}
+                    onClick={() => setPage((prevPage) => prevPage + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

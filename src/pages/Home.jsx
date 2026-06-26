@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
@@ -7,19 +7,72 @@ import ProductList from "../components/ProductList";
 import Newsletter from "../components/Newsletter";
 import Footer from "../components/Footer";
 import CartModal from "../components/CartModal";
-import products from "../data/products";
+import { useProducts } from "../hooks/useProducts";
 import PromotionBanner from "../components/PromotionBanner";
 
+// import services
+import categoryService from "../services/categoryService";
 
-function Home({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser }) {
+function Home({
+  cart = {},
+  setCart,
+  wishlist = [],
+  setWishlist,
+  user,
+  setUser,
+}) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedCategory, setSelectedCategory] = useState({
+    id: 0,
+    name: "All",
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const [categories, setCategories] = useState([{ id: 0, name: "All" }]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [categoryError, setCategoryError] = useState("");
+
+  const {
+    products,
+    loading: loadingProducts,
+    error: productError,
+  } = useProducts(selectedCategory.id);
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
-  const categories = ["All", "Mobiles", "Laptops", "Accessories", "Fashion", "Shoes"];
+  // const categories = [
+  //   "All",
+  //   "Mobiles",
+  //   "Laptops",
+  //   "Accessories",
+  //   "Fashion",
+  //   "Shoes",
+  // ];
+  // fetch categories from the API when the component mounts
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+
+      const data = await categoryService.getCategories();
+      let myCategories = data.map((category) => ({
+        id: category.id,
+        name: category.name,
+      }));
+      console.log("Fetched Categories:", myCategories); // Debugging line
+      // Add "All" option at the beginning
+      setCategories([{ id: 0, name: "All" }, ...myCategories]);
+    } catch (error) {
+      console.error(error);
+      setCategoryError("Failed to load categories.");
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const handleAddToCart = (productId) => {
     setCart((prev) => ({
@@ -50,16 +103,9 @@ function Home({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser })
     });
   };
 
-  const filteredProducts = products.filter((product) => {
-    const searchMatch = product.name
-      .toLowerCase()
-      .includes(search.toLowerCase());
-
-    const categoryMatch =
-      selectedCategory === "All" || product.category === selectedCategory;
-
-    return searchMatch && categoryMatch;
-  });
+  const searchFilteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const cartItems = products
     .filter((product) => cart[product.id])
@@ -68,7 +114,7 @@ function Home({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser })
       quantity: cart[product.id],
     }));
 
-  const productsWithMeta = filteredProducts.map((product) => ({
+  const productsWithMeta = searchFilteredProducts.map((product) => ({
     ...product,
     qty: cart[product.id] || 0,
     isWishlisted: wishlist.includes(product.id),
@@ -99,6 +145,15 @@ function Home({ cart = {}, setCart, wishlist = [], setWishlist, user, setUser })
           selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
         />
+
+        {loadingProducts && (
+          <p className="section-message">Loading products...</p>
+        )}
+        {productError && (
+          <p className="section-message section-message--error">
+            {productError}
+          </p>
+        )}
 
         <ProductList
           products={latestProducts}

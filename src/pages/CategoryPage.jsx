@@ -101,27 +101,83 @@
 
 // export default CategoryPage;
 
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
-
-import categories from "../data/categories";
-
 import CategoryCard from "../components/CategoryCard";
+import { useCategories } from "../hooks/useCategories";
+import localCategories from "../data/categories";
 
 function CategoryPage({ cart = {}, wishlist = [], user, setUser }) {
+  const navigate = useNavigate();
   const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0);
 
+  const {
+    categories: apiCategories,
+    loading: loadingCategories,
+    error: categoryError,
+  } = useCategories();
+  const categories = useMemo(() => {
+    return (apiCategories || []).map((category) => {
+      const localCategory = localCategories.find(
+        (item) =>
+          item.id === category.id ||
+          item.name.toLowerCase() === category.name.toLowerCase(),
+      );
+      const rawImage =
+        category?.image || category?.images || localCategory?.image;
+      const image =
+        typeof rawImage === "string"
+          ? rawImage
+          : rawImage?.url ||
+            rawImage?.image ||
+            rawImage?.[0]?.url ||
+            rawImage?.[0]?.image ||
+            localCategory?.image ||
+            "/images/categories/default.png";
+      const slug =
+        category.slug ||
+        category.name?.toLowerCase().replace(/\s+/g, "-") ||
+        "";
+
+      return {
+        ...category,
+        image,
+        name: category.name,
+        slug,
+      };
+    });
+  }, [apiCategories]);
+
   return (
-    <MainLayout cartCount={cartCount} wishlistCount={wishlist.length} user={user} setUser={setUser}>
+    <MainLayout
+      cartCount={cartCount}
+      wishlistCount={wishlist.length}
+      user={user}
+      setUser={setUser}
+    >
       <div className="container">
         <div className="page-heading">
           <h1>Shop By Category</h1>
-
           <p>Browse products by category</p>
         </div>
 
+        {loadingCategories && (
+          <p className="section-message">Loading categories...</p>
+        )}
+        {categoryError && (
+          <p className="section-message section-message--error">
+            {categoryError}
+          </p>
+        )}
+
         <div className="category-grid">
           {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
+            <CategoryCard
+              key={category.id}
+              category={category}
+              onClick={() => navigate(`/category/${category.slug}`)}
+            />
           ))}
         </div>
       </div>

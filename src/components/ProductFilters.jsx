@@ -1,6 +1,7 @@
 function ProductFilters({
   search,
   setSearch,
+  categories,
   selectedCategory,
   setSelectedCategory,
   priceRange,
@@ -57,17 +58,17 @@ function ProductFilters({
 
       <h3>Categories</h3>
 
-      {["All", "Mobiles", "Laptops", "Accessories", "Fashion", "Shoes"].map(
-        (category) => (
-          <button
-            key={category}
-            className={selectedCategory === category ? "active-filter" : ""}
-            onClick={() => setSelectedCategory(category)}
-          >
-            {category}
-          </button>
-        ),
-      )}
+      {categories.map((category) => (
+        <button
+          key={category.id}
+          className={
+            selectedCategory?.id === category.id ? "active-filter" : ""
+          }
+          onClick={() => setSelectedCategory(category)}
+        >
+          {category.name}
+        </button>
+      ))}
     </aside>
   );
 }

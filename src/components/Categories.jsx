@@ -6,13 +6,13 @@ function Categories({ categories, selectedCategory, setSelectedCategory }) {
       <div className="categories">
         {categories.map((category) => (
           <button
-            key={category}
+            key={category.id}
             className={`category-btn ${
-              selectedCategory === category ? "active-category" : ""
+              selectedCategory?.id === category.id ? "active-category" : ""
             }`}
             onClick={() => setSelectedCategory(category)}
           >
-            {category}
+            {category.name}
           </button>
         ))}
       </div>
