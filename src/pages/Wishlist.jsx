@@ -1,20 +1,63 @@
+import { useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
-
 import WishlistList from "../components/wishlist/WishlistList";
-
 import WishlistSummary from "../components/wishlist/WishlistSummary";
-
 import EmptyWishlist from "../components/wishlist/EmptyWishlist";
-
-import products from "../data/products";
+import api from "../api/axios";
 
 function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) {
-  const wishlistedProducts = products.filter((product) => wishlist.includes(product.id));
+  const [wishlistedProducts, setWishlistedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const getMediaUrl = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http")) return path;
+    const baseURL = api.defaults.baseURL || "http://127.0.0.1:8000/api";
+    const origin = baseURL.replace(/\/api\/?$/, "");
+    return `${origin}${path}`;
+  };
+
+  const mapBackendProductToWishlistItem = (product) => {
+    const defaultVariant = product.variants?.find((v) => v.is_active && v.stock > 0) || product.variants?.[0];
+    const hasImage = product.images && product.images.length > 0;
+    const imageUrl = hasImage ? getMediaUrl(product.images[0].image) : "";
+    const basePrice = defaultVariant ? parseFloat(defaultVariant.price) : 0;
+
+    return {
+      id: product.id,
+      name: product.name,
+      brand: "ShopEase",
+      price: basePrice,
+      image: imageUrl
+    };
+  };
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (user) {
+        try {
+          setLoading(true);
+          const response = await api.get("/wishlist/");
+          const productsData = response.data.map(item => mapBackendProductToWishlistItem(item.product));
+          setWishlistedProducts(productsData);
+        } catch (e) {
+          console.error("Failed to fetch wishlist details:", e);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setWishlistedProducts([]);
+        setLoading(false);
+      }
+    };
+    fetchWishlist();
+  }, [user]);
 
   const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0);
 
   const handleRemove = (productId) => {
-    setWishlist((prev) => prev.filter((id) => id !== productId));
+    setWishlist(productId);
+    setWishlistedProducts(prev => prev.filter(item => item.id !== productId));
   };
 
   const handleAddToCart = (productId) => {
@@ -22,8 +65,8 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
       ...prev,
       [productId]: (prev[productId] || 0) + 1,
     }));
-    // Remove from wishlist after adding to cart
-    setWishlist((prev) => prev.filter((id) => id !== productId));
+    setWishlist(productId);
+    setWishlistedProducts(prev => prev.filter(item => item.id !== productId));
   };
 
   return (
@@ -35,7 +78,9 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
           <p>{wishlistedProducts.length} Items Saved</p>
         </div>
 
-        {wishlistedProducts.length > 0 ? (
+        {loading ? (
+          <p className="section-message">Loading wishlist items...</p>
+        ) : wishlistedProducts.length > 0 ? (
           <div className="wishlist-page-layout" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "30px", alignItems: "start" }}>
             <WishlistList wishlist={wishlistedProducts} onRemove={handleRemove} onAddToCart={handleAddToCart} />
 

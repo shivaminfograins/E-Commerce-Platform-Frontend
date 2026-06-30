@@ -62,13 +62,13 @@ function CategoryProducts({
   };
 
   const handleToggleWishlist = (productId) => {
-    setWishlist((prev) => {
-      if (prev.includes(productId)) {
-        return prev.filter((id) => id !== productId);
-      } else {
-        return [...prev, productId];
+    if (!user) {
+      if (window.confirm("You need to be logged in to add products to your wishlist. Would you like to log in now?")) {
+        navigate("/login");
       }
-    });
+      return;
+    }
+    setWishlist(productId);
   };
 
   const productsWithMeta = products.map((product) => ({

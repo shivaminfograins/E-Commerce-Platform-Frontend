@@ -10,10 +10,12 @@ import Products from "./pages/Products";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import AddressBook from "./pages/AddressBook";
+import api from "./api/axios";
 
 
 function App() {
@@ -72,6 +74,45 @@ function App() {
     }
   }, [wishlist]);
 
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (user) {
+        try {
+          const response = await api.get("/wishlist/");
+          const productIds = response.data.map(item => item.product.id);
+          setWishlist(productIds);
+        } catch (e) {
+          console.error("Failed to load wishlist from server:", e);
+        }
+      } else {
+        setWishlist([]);
+      }
+    };
+    fetchWishlist();
+  }, [user]);
+
+  const toggleWishlist = async (productId) => {
+    if (!user) return;
+    const exists = wishlist.includes(productId);
+    if (exists) {
+      setWishlist(prev => prev.filter(id => id !== productId));
+      try {
+        await api.delete(`/wishlist/${productId}/`);
+      } catch (err) {
+        console.error("Failed to remove from wishlist:", err);
+        setWishlist(prev => [...prev, productId]);
+      }
+    } else {
+      setWishlist(prev => [...prev, productId]);
+      try {
+        await api.post("/wishlist/", { product: productId });
+      } catch (err) {
+        console.error("Failed to add to wishlist:", err);
+        setWishlist(prev => prev.filter(id => id !== productId));
+      }
+    }
+  };
+
   return (
     <BrowserRouter>
       <Routes>
@@ -82,7 +123,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -95,7 +136,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -108,7 +149,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -121,7 +162,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -135,7 +176,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -149,7 +190,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -165,6 +206,7 @@ function App() {
           element={<Register user={user} setUser={setUser} />}
         />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
         <Route
           path="/wishlist"
           element={
@@ -172,7 +214,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -185,7 +227,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -198,7 +240,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />
@@ -211,7 +253,7 @@ function App() {
               cart={cart}
               setCart={setCart}
               wishlist={wishlist}
-              setWishlist={setWishlist}
+              setWishlist={toggleWishlist}
               user={user}
               setUser={setUser}
             />

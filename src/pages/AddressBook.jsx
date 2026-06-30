@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import AddressCard from "../components/address/AddressCard";
-import initialAddresses from "../data/address";
+import addressService from "../services/addressService";
 
 function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
   const navigate = useNavigate();
@@ -13,36 +13,58 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
     }
   }, [user, navigate]);
 
-  const [addresses, setAddresses] = useState(() => {
-    try {
-      const saved = localStorage.getItem("shopease_addresses");
-      return saved ? JSON.parse(saved) : initialAddresses;
-    } catch {
-      return initialAddresses;
-    }
-  });
-
+  const [addresses, setAddresses] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
     streetAddress: "",
+    addressLine2: "",
     city: "",
     state: "",
+    country: "India",
     zipCode: "",
     type: "Home",
     isDefault: false
   });
   const [formErrors, setFormErrors] = useState({});
 
-  useEffect(() => {
+  const normalizeAddress = (addr) => ({
+    id: addr.id,
+    fullName: addr.full_name,
+    phone: addr.phone,
+    streetAddress: addr.address_line_1,
+    addressLine2: addr.address_line_2 || "",
+    city: addr.city,
+    state: addr.state,
+    country: addr.country || "India",
+    zipCode: addr.postal_code,
+    type: "Home", // Default since backend does not store address type
+    isDefault: addr.is_default
+  });
+
+  const loadAddresses = async () => {
+    setIsLoading(true);
+    setError("");
     try {
-      localStorage.setItem("shopease_addresses", JSON.stringify(addresses));
-    } catch (e) {
-      console.warn("localStorage is not available for saving addresses:", e);
+      const data = await addressService.getAddresses();
+      setAddresses(data.map(normalizeAddress));
+    } catch (err) {
+      console.error("Failed to load addresses:", err);
+      setError("Failed to load addresses from the server.");
+    } finally {
+      setIsLoading(false);
     }
-  }, [addresses]);
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadAddresses();
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -54,8 +76,10 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
       fullName: "",
       phone: "",
       streetAddress: "",
+      addressLine2: "",
       city: "",
       state: "",
+      country: "India",
       zipCode: "",
       type: "Home",
       isDefault: addresses.length === 0 // default if first address
@@ -66,7 +90,18 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
 
   const openEditModal = (addr) => {
     setEditingAddress(addr);
-    setFormData({ ...addr });
+    setFormData({
+      fullName: addr.fullName || "",
+      phone: addr.phone || "",
+      streetAddress: addr.streetAddress || "",
+      addressLine2: addr.addressLine2 || "",
+      city: addr.city || "",
+      state: addr.state || "",
+      country: addr.country || "India",
+      zipCode: addr.zipCode || "",
+      type: addr.type || "Home",
+      isDefault: addr.isDefault || false
+    });
     setFormErrors({});
     setIsModalOpen(true);
   };
@@ -90,69 +125,99 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
     if (!formData.streetAddress.trim()) errors.streetAddress = "Street address is required";
     if (!formData.city.trim()) errors.city = "City is required";
     if (!formData.state.trim()) errors.state = "State is required";
+    if (!formData.country.trim()) errors.country = "Country is required";
     if (!formData.zipCode.trim()) errors.zipCode = "ZIP/PIN code is required";
     
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleSaveAddress = (e) => {
+  const handleSaveAddress = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    let updatedAddresses;
+    setIsLoading(true);
+    setError("");
 
-    if (editingAddress) {
-      // Edit
-      updatedAddresses = addresses.map((addr) =>
-        addr.id === editingAddress.id ? { ...formData } : addr
-      );
-    } else {
-      // Add
-      const newAddress = {
-        ...formData,
-        id: `addr-${Date.now()}`
-      };
-      updatedAddresses = [...addresses, newAddress];
-    }
+    const payload = {
+      full_name: formData.fullName.trim(),
+      phone: formData.phone.trim(),
+      address_line_1: formData.streetAddress.trim(),
+      address_line_2: formData.addressLine2 ? formData.addressLine2.trim() : "",
+      city: formData.city.trim(),
+      state: formData.state.trim(),
+      country: formData.country.trim(),
+      postal_code: formData.zipCode.trim(),
+      is_default: formData.isDefault
+    };
 
-    // Handle isDefault logic (only one address can be default)
-    if (formData.isDefault) {
-      const targetId = editingAddress ? editingAddress.id : updatedAddresses[updatedAddresses.length - 1].id;
-      updatedAddresses = updatedAddresses.map((addr) => ({
-        ...addr,
-        isDefault: addr.id === targetId
-      }));
-    } else if (editingAddress && editingAddress.isDefault) {
-      // Prevent unchecking default if it's the only one, or force another to be default
-      const defaultCount = updatedAddresses.filter(a => a.isDefault).length;
-      if (defaultCount === 0 && updatedAddresses.length > 0) {
-        updatedAddresses[0].isDefault = true;
+    try {
+      let savedAddr;
+      if (editingAddress) {
+        savedAddr = await addressService.patchAddress(editingAddress.id, payload);
+      } else {
+        savedAddr = await addressService.createAddress(payload);
       }
-    }
 
-    setAddresses(updatedAddresses);
-    setIsModalOpen(false);
+      // Handle default address backend sync
+      if (payload.is_default) {
+        const otherDefaults = addresses.filter(
+          (a) => a.isDefault && a.id !== (editingAddress ? editingAddress.id : savedAddr.id)
+        );
+        for (const addr of otherDefaults) {
+          await addressService.patchAddress(addr.id, { is_default: false });
+        }
+      }
+
+      await loadAddresses();
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error("Failed to save address:", err);
+      setError("Failed to save address. Please check your inputs.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteAddress = (id) => {
+  const handleDeleteAddress = async (id) => {
     if (window.confirm("Are you sure you want to delete this address?")) {
-      const updated = addresses.filter((addr) => addr.id !== id);
-      // If we deleted the default address, make another one default
-      const wasDefault = addresses.find(a => a.id === id)?.isDefault;
-      if (wasDefault && updated.length > 0) {
-        updated[0].isDefault = true;
+      setIsLoading(true);
+      setError("");
+      try {
+        const addressToDelete = addresses.find((a) => a.id === id);
+        await addressService.deleteAddress(id);
+        
+        // If we deleted the default address, promote another one if available
+        const remaining = addresses.filter((addr) => addr.id !== id);
+        if (addressToDelete?.isDefault && remaining.length > 0) {
+          await addressService.patchAddress(remaining[0].id, { is_default: true });
+        }
+        await loadAddresses();
+      } catch (err) {
+        console.error("Failed to delete address:", err);
+        setError("Failed to delete address from server.");
+      } finally {
+        setIsLoading(false);
       }
-      setAddresses(updated);
     }
   };
 
-  const handleSetDefault = (id) => {
-    const updated = addresses.map((addr) => ({
-      ...addr,
-      isDefault: addr.id === id
-    }));
-    setAddresses(updated);
+  const handleSetDefault = async (id) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      await addressService.patchAddress(id, { is_default: true });
+      const otherDefaults = addresses.filter((a) => a.isDefault && a.id !== id);
+      for (const addr of otherDefaults) {
+        await addressService.patchAddress(addr.id, { is_default: false });
+      }
+      await loadAddresses();
+    } catch (err) {
+      console.error("Failed to set default address:", err);
+      setError("Failed to set default address.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Sort default first
@@ -185,8 +250,25 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
           </button>
         </div>
 
-        {/* Address Cards Grid */}
-        {sortedAddresses.length > 0 ? (
+        {/* Global Error Banner */}
+        {error && (
+          <div style={{ padding: "14px 20px", background: "#fee2e2", border: "1px solid #fca5a5", color: "#b91c1c", borderRadius: "12px", marginBottom: "25px", fontSize: "14px", fontWeight: "500" }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {/* Loading Spinner */}
+        {isLoading && addresses.length === 0 ? (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "100px 0" }}>
+            <div style={{ width: "40px", height: "40px", border: "4px solid #f3f3f3", borderTop: "4px solid #7c3aed", borderRadius: "50%", animation: "spin 1s linear infinite" }}></div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        ) : sortedAddresses.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "25px" }}>
             {sortedAddresses.map((address) => (
               <AddressCard
@@ -264,7 +346,7 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    placeholder="Enter 10-digit number"
+                    placeholder="Enter phone number"
                     style={{ width: "100%", height: "45px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
                   />
                   {formErrors.phone && <span style={{ color: "#ef4444", fontSize: "11px", marginTop: "4px", display: "block" }}>{formErrors.phone}</span>}
@@ -282,6 +364,19 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
                     style={{ width: "100%", height: "45px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
                   />
                   {formErrors.streetAddress && <span style={{ color: "#ef4444", fontSize: "11px", marginTop: "4px", display: "block" }}>{formErrors.streetAddress}</span>}
+                </div>
+
+                {/* Address Line 2 */}
+                <div className="input-group">
+                  <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>Apartment, Suite, Unit, etc. (Optional)</label>
+                  <input
+                    type="text"
+                    name="addressLine2"
+                    value={formData.addressLine2}
+                    onChange={handleInputChange}
+                    placeholder="Apt, Suite, Unit, etc."
+                    style={{ width: "100%", height: "45px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
+                  />
                 </div>
 
                 {/* City & ZIP */}
@@ -305,15 +400,15 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
                       name="zipCode"
                       value={formData.zipCode}
                       onChange={handleInputChange}
-                      placeholder="6-digit ZIP code"
+                      placeholder="ZIP code"
                       style={{ width: "100%", height: "45px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
                     />
                     {formErrors.zipCode && <span style={{ color: "#ef4444", fontSize: "11px", marginTop: "4px", display: "block" }}>{formErrors.zipCode}</span>}
                   </div>
                 </div>
 
-                {/* State & Type */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                {/* State, Country & Type */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
                   <div className={`input-group ${formErrors.state ? "has-error" : ""}`}>
                     <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>State *</label>
                     <input
@@ -321,10 +416,22 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
                       name="state"
                       value={formData.state}
                       onChange={handleInputChange}
-                      placeholder="State name"
-                      style={{ width: "100%", height: "45px", padding: "0 14px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "14px" }}
+                      placeholder="State"
+                      style={{ width: "100%", height: "45px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "13px" }}
                     />
                     {formErrors.state && <span style={{ color: "#ef4444", fontSize: "11px", marginTop: "4px", display: "block" }}>{formErrors.state}</span>}
+                  </div>
+                  <div className={`input-group ${formErrors.country ? "has-error" : ""}`}>
+                    <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>Country *</label>
+                    <input
+                      type="text"
+                      name="country"
+                      value={formData.country}
+                      onChange={handleInputChange}
+                      placeholder="Country"
+                      style={{ width: "100%", height: "45px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "10px", fontSize: "13px" }}
+                    />
+                    {formErrors.country && <span style={{ color: "#ef4444", fontSize: "11px", marginTop: "4px", display: "block" }}>{formErrors.country}</span>}
                   </div>
                   <div className="input-group">
                     <label style={{ fontSize: "13px", fontWeight: "600", color: "#334155", display: "block", marginBottom: "6px" }}>Address Type</label>
@@ -332,7 +439,7 @@ function AddressBook({ cart = {}, wishlist = [], user, setUser }) {
                       name="type"
                       value={formData.type}
                       onChange={handleInputChange}
-                      style={{ width: "100%", height: "45px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "10px", background: "white", fontSize: "14px" }}
+                      style={{ width: "100%", height: "45px", padding: "0 10px", border: "1px solid #cbd5e1", borderRadius: "10px", background: "white", fontSize: "13px" }}
                     >
                       <option value="Home">Home</option>
                       <option value="Work">Work</option>

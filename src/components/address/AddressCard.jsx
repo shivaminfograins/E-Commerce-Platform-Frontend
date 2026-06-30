@@ -56,11 +56,16 @@ function AddressCard({ address, onEdit, onDelete, onSetDefault }) {
         <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>
           {address.fullName}
         </h3>
-        <p style={{ margin: "0 0 6px 0", fontSize: "14px", color: "#475569", lineHeight: "1.5" }}>
+        <p style={{ margin: "0 0 4px 0", fontSize: "14px", color: "#475569", lineHeight: "1.5" }}>
           {address.streetAddress}
         </p>
+        {address.addressLine2 && (
+          <p style={{ margin: "0 0 4px 0", fontSize: "14px", color: "#475569", lineHeight: "1.5" }}>
+            {address.addressLine2}
+          </p>
+        )}
         <p style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#475569" }}>
-          {address.city}, {address.state} - {address.zipCode}
+          {address.city}, {address.state} - {address.zipCode}, {address.country}
         </p>
         <p style={{ margin: 0, fontSize: "13px", color: "#64748b", display: "flex", alignItems: "center", gap: "6px" }}>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
