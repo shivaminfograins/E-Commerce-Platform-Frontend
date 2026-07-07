@@ -27,17 +27,11 @@ export function useProducts(categoryId, page = 1) {
         const normalizedProducts = items.map((product) => {
           const rawImage =
             product.images?.[0]?.image || product.images?.[0]?.url || "";
+          // /media/* is proxied through Vite to Django; absolute URLs pass through.
           const normalizeUrl = (url) => {
-            if (!url) return "";
-            if (typeof url !== "string") return "";
-            if (url.startsWith("http://") || url.startsWith("https://"))
-              return url;
-            if (url.startsWith("/")) {
-              const apiBase = import.meta.env.VITE_API_BASE_URL || "";
-              const backendOrigin = apiBase.replace(/\/api\/?$/, "");
-              return backendOrigin + url;
-            }
-            return url;
+            if (!url || typeof url !== "string") return "";
+            if (url.startsWith("http://") || url.startsWith("https://")) return url;
+            return url; // relative paths like /media/... work via Vite proxy
           };
           const imageUrl = normalizeUrl(rawImage);
           const firstVariant = product.variants?.[0] || {};

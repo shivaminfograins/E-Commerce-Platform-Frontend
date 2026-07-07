@@ -1,6 +1,25 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
 
+/**
+ * ProductCard.jsx
+ *
+ * Changes from previous version:
+ *  - "Add To Cart" on the card now navigates to the product detail page
+ *    instead of attempting an inline add-to-cart.
+ *
+ *  WHY: The backend now requires a ProductVariant PK, not just a Product PK.
+ *  A card doesn't know which variant the shopper wants — only the detail page
+ *  can present the variant selector.  Clicking "Add To Cart" on the card
+ *  takes the user to `/product/<id>` where they can pick a variant and add
+ *  it properly.
+ *
+ *  The quantity control (qty > 0 state) is preserved for when the card is
+ *  used in a context where a variant is already pre-selected (future use).
+ *  In the current architecture, qty will always be 0 on listing pages.
+ *
+ *  All other visual elements (badge, wishlist, rating, pricing) are unchanged.
+ */
 function ProductCard({
   id,
   name,
@@ -28,9 +47,7 @@ function ProductCard({
     >
       {/* Badge (e.g. Best Seller, Hot, Premium, New) */}
       {badge && (
-        <span
-          className={`badge badge--${badge.toLowerCase().replace(" ", "-")}`}
-        >
+        <span className={`badge badge--${badge.toLowerCase().replace(" ", "-")}`}>
           {badge}
         </span>
       )}
@@ -126,7 +143,12 @@ function ProductCard({
           )}
         </div>
 
-        {/* Action Button / Qty Control */}
+        {/* Action Button
+            Always navigates to the product detail page so the user can
+            choose a variant before the item is added to the cart.
+            The qty control branch is kept for future use-cases but is
+            effectively unreachable from listing pages in the current flow.
+        */}
         <div className="card-actions">
           {qty > 0 ? (
             <div className="qty-control">
@@ -144,7 +166,7 @@ function ProductCard({
                   strokeWidth="2.5"
                   strokeLinecap="round"
                 >
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </button>
               <span className="qty-display">{qty}</span>
@@ -162,16 +184,14 @@ function ProductCard({
                   strokeWidth="2.5"
                   strokeLinecap="round"
                 >
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </button>
             </div>
           ) : (
-            <button
-              className="btn btn--primary btn--add-to-cart"
-              onClick={() => onAdd && onAdd(id)}
-            >
+            /* Navigate to detail page — variant selection is required */
+            <Link to={`/product/${id}`} className="btn btn--primary btn--add-to-cart">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -189,7 +209,7 @@ function ProductCard({
                 <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
               </svg>
               Add To Cart
-            </button>
+            </Link>
           )}
         </div>
       </div>

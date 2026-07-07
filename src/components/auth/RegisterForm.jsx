@@ -32,8 +32,8 @@ function RegisterForm() {
 
     if (!password) {
       tempErrors.password = "Password is required";
-    } else if (password.length < 6) {
-      tempErrors.password = "Password must be at least 6 characters";
+    } else if (password.length < 8) {
+      tempErrors.password = "Password must be at least 8 characters";
     }
 
     if (!confirmPassword) {
@@ -74,11 +74,33 @@ function RegisterForm() {
         navigate("/login");
       }, 1500);
     } catch (error) {
-      const message =
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        "Registration failed. Please try again.";
+      let message = "Registration failed. Please try again.";
+      if (error?.response?.data) {
+        const data = error.response.data;
+        if (typeof data === "string") {
+          message = data;
+        } else if (data.detail) {
+          message = data.detail;
+        } else if (data.message) {
+          message = data.message;
+        } else if (data.error) {
+          message = data.error;
+        } else if (typeof data === "object") {
+          // Parse field-specific errors e.g. { email: ["..."], password: ["..."] }
+          const errorParts = [];
+          Object.entries(data).forEach(([field, errorsList]) => {
+            const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
+            if (Array.isArray(errorsList)) {
+              errorParts.push(`${fieldName}: ${errorsList.join(", ")}`);
+            } else {
+              errorParts.push(`${fieldName}: ${errorsList}`);
+            }
+          });
+          if (errorParts.length > 0) {
+            message = errorParts.join(" | ");
+          }
+        }
+      }
       setApiError(message);
     } finally {
       setIsLoading(false);

@@ -1,33 +1,22 @@
 import { Link } from "react-router-dom";
 
-function AccountStats({ cartCount = 0, wishlistCount = 0 }) {
-  let addressesCount = 1;
-  try {
-    const saved = localStorage.getItem("shopease_addresses");
-    if (saved) {
-      addressesCount = JSON.parse(saved).length;
-    }
-  } catch {}
-
+function AccountStats({ cartCount = 0, wishlistCount = 0, ordersCount = 0, addressesCount = 0 }) {
   const stats = [
     {
       title: "Orders",
-      value: "3",
+      value: ordersCount.toString(),
       path: "/orders"
     },
-
     {
       title: "Wishlist",
       value: wishlistCount.toString(),
       path: "/wishlist"
     },
-
     {
       title: "Addresses",
       value: addressesCount.toString(),
       path: "/address-book"
     },
-
     {
       title: "Cart",
       value: cartCount.toString(),
@@ -53,7 +42,6 @@ function AccountStats({ cartCount = 0, wishlistCount = 0 }) {
           }}
         >
           <h2 style={{ fontSize: "32px", fontWeight: "800", color: "#7c3aed", margin: "0 0 8px 0" }}>{item.value}</h2>
-
           <p style={{ fontSize: "14px", fontWeight: "600", color: "#64748b", margin: 0 }}>{item.title}</p>
         </Link>
       ))}

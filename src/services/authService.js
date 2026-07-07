@@ -78,9 +78,9 @@ const postWithFallback = async (candidates, data) => {
 const authService = {
   login: async ({ email, password }) => {
     const response = await postWithFallback(
-      ["/auth/login/", "/api/auth/login/"],
+      ["/auth/login/"],
       {
-        email,
+        email: email,
         password,
       },
     );
@@ -89,7 +89,7 @@ const authService = {
 
   register: async ({ email, username, password }) => {
     const response = await postWithFallback(
-      ["/auth/register/", "/api/auth/register/"],
+      ["/auth/register/"],
       {
         email,
         username,
@@ -101,7 +101,7 @@ const authService = {
 
   refreshToken: async (refreshToken) => {
     const response = await postWithFallback(
-      ["/auth/token/refresh/", "/api/auth/token/refresh/"],
+      ["/auth/token/refresh/"],
       {
         refresh: refreshToken,
       },
@@ -111,7 +111,7 @@ const authService = {
 
   forgotPassword: async ({ email }) => {
     const response = await postWithFallback(
-      ["/accounts/forgot-password/", "/auth/forgot-password/"],
+      ["/auth/forgot-password/"],
       { email },
     );
     return response.data;
@@ -119,7 +119,7 @@ const authService = {
 
   resetPassword: async ({ uid, token, password, confirm_password }) => {
     const response = await postWithFallback(
-      ["/accounts/reset-password/", "/auth/reset-password/"],
+      ["/auth/reset-password/"],
       {
         uid,
         token,

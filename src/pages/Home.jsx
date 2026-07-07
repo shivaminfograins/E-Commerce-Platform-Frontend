@@ -15,6 +15,7 @@ import categoryService from "../services/categoryService";
 
 function Home({
   cart = {},
+  cartItems = [],
   setCart,
   wishlist = [],
   setWishlist,
@@ -107,12 +108,6 @@ function Home({
     product.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const cartItems = products
-    .filter((product) => cart[product.id])
-    .map((product) => ({
-      ...product,
-      quantity: cart[product.id],
-    }));
 
   const productsWithMeta = searchFilteredProducts.map((product) => ({
     ...product,

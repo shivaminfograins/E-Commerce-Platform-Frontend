@@ -108,6 +108,16 @@ import CategoryCard from "../components/CategoryCard";
 import { useCategories } from "../hooks/useCategories";
 import localCategories from "../data/categories";
 
+// Vite proxy only handles /api/*; /media/* must go directly to Django.
+const BACKEND_ORIGIN =
+  import.meta.env.VITE_MEDIA_BASE_URL || "http://127.0.0.1:8000";
+
+function normalizeMediaUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  if (url.startsWith("/")) return BACKEND_ORIGIN + url;
+  return url;
+}
 function CategoryPage({ cart = {}, wishlist = [], user, setUser }) {
   const navigate = useNavigate();
   const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0);
@@ -117,6 +127,7 @@ function CategoryPage({ cart = {}, wishlist = [], user, setUser }) {
     loading: loadingCategories,
     error: categoryError,
   } = useCategories();
+
   const categories = useMemo(() => {
     return (apiCategories || []).map((category) => {
       const localCategory = localCategories.find(
@@ -124,17 +135,18 @@ function CategoryPage({ cart = {}, wishlist = [], user, setUser }) {
           item.id === category.id ||
           item.name.toLowerCase() === category.name.toLowerCase(),
       );
-      const rawImage =
-        category?.image || category?.images || localCategory?.image;
+
+      // API returns images as an array: [{ image: "/media/categories/foo.png" }]
+      const apiImagePath =
+        category?.images?.[0]?.image ||
+        category?.images?.[0]?.url ||
+        null;
+
       const image =
-        typeof rawImage === "string"
-          ? rawImage
-          : rawImage?.url ||
-            rawImage?.image ||
-            rawImage?.[0]?.url ||
-            rawImage?.[0]?.image ||
-            localCategory?.image ||
-            "/images/categories/default.png";
+        normalizeMediaUrl(apiImagePath) ||
+        localCategory?.image ||
+        "/images/categories/default.png";
+
       const slug =
         category.slug ||
         category.name?.toLowerCase().replace(/\s+/g, "-") ||

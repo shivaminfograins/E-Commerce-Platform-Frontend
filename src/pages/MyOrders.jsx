@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import OrderFilter from "../components/orders/OrderFilter";
 import OrderList from "../components/orders/OrderList";
 import EmptyOrders from "../components/orders/EmptyOrders";
 import OrderDetailsModal from "../components/orders/OrderDetailsModal";
-import orders from "../data/orders";
+import orderService from "../services/orderService";
 
 function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
   const navigate = useNavigate();
@@ -16,25 +16,71 @@ function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
     }
   }, [user, navigate]);
 
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
-  if (!user) return null;
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: 10,
+    total_pages: 1,
+    count: 0,
+  });
 
   const cartCount = Object.values(cart).reduce((sum, val) => sum + val, 0);
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.brand.toLowerCase().includes(searchQuery.toLowerCase());
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setError("");
+    try {
+      const params = {
+        page: pagination.page,
+        page_size: pagination.page_size,
+      };
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+      // Status filtering handled by search or can be mapped to Django query search parameter
+      if (statusFilter !== "All") {
+        params.search = statusFilter.toLowerCase();
+      }
 
-    const matchesStatus =
-      statusFilter === "All" || order.status === statusFilter;
+      const response = await orderService.getOrders(params);
+      const data = response.data;
+      if (data.success) {
+        setOrders(data.results);
+        setPagination((prev) => ({
+          ...prev,
+          total_pages: data.total_pages,
+          count: data.count,
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+      setError("Unable to load orders. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user, searchQuery, statusFilter, pagination.page, pagination.page_size]);
 
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handlePageChange = (newPage) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handleCancelSuccess = () => {
+    // Refresh list and clear modal
+    fetchOrders();
+    setSelectedOrderId(null);
+  };
+
+  if (!user) return null;
 
   return (
     <MainLayout
@@ -54,17 +100,63 @@ function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
           setStatusFilter={setStatusFilter}
         />
 
-        {filteredOrders.length > 0 ? (
-          <OrderList orders={filteredOrders} onViewDetails={setSelectedOrder} />
+        {loading ? (
+          <p className="section-message">Loading your orders...</p>
+        ) : error ? (
+          <p className="section-message section-message--error">{error}</p>
+        ) : orders.length > 0 ? (
+          <>
+            <OrderList 
+              orders={orders.map((o) => ({
+                id: o.id,
+                orderNumber: o.order_number,
+                status: o.status_display,
+                rawStatus: o.status,
+                total: o.total_amount,
+                date: new Date(o.created_at).toLocaleDateString(),
+                itemCount: o.item_count,
+                image: o.first_item_image || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=150",
+                productName: o.first_item_name || "Order Items",
+                brand: o.coupon_code ? `Coupon: ${o.coupon_code}` : "ShopEase",
+                quantity: o.item_count,
+                price: o.total_amount,
+              }))} 
+              onViewDetails={(order) => setSelectedOrderId(order.id)} 
+            />
+            
+            {/* Pagination Controls */}
+            {pagination.total_pages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginTop: "30px" }}>
+                <button
+                  disabled={pagination.page <= 1}
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  style={{ padding: "8px 16px", background: "#f1f5f9", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                >
+                  Previous
+                </button>
+                <span style={{ alignSelf: "center", fontWeight: "600", fontSize: "14px" }}>
+                  Page {pagination.page} of {pagination.total_pages}
+                </span>
+                <button
+                  disabled={pagination.page >= pagination.total_pages}
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  style={{ padding: "8px 16px", background: "#f1f5f9", border: "none", borderRadius: "8px", cursor: "pointer" }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <EmptyOrders />
         )}
       </div>
 
-      {selectedOrder && (
+      {selectedOrderId && (
         <OrderDetailsModal
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
+          orderId={selectedOrderId}
+          onClose={() => setSelectedOrderId(null)}
+          onCancelSuccess={handleCancelSuccess}
         />
       )}
     </MainLayout>
