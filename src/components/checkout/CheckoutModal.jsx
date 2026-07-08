@@ -1,7 +1,25 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./checkout.css";
 import addressService from "../../services/addressService";
 import orderService from "../../services/orderService";
+import paymentService from "../../services/paymentService";
+
+/* ── script helper ─────────────────────────────────────── */
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 /* ── tiny icon helpers ─────────────────────────────────── */
 const IconClose = () => (
@@ -113,6 +131,7 @@ function CheckoutModal({
   shipping = 0,
   total = 0,
   onOrderSuccess,
+  user,
 }) {
   const [addresses, setAddresses] = useState([]);
   const [selectedAddr, setSelectedAddr] = useState(null);
@@ -121,9 +140,17 @@ function CheckoutModal({
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [placedOrderInfo, setPlacedOrderInfo] = useState(null);
+  const navigate = useNavigate();
 
   // Fetch addresses dynamically from DB
   useEffect(() => {
+    if (open && !user) {
+      onClose();
+      window.alert("Please log in to proceed to checkout.");
+      navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
+
     if (open) {
       const fetchAddresses = async () => {
         try {
@@ -145,31 +172,122 @@ function CheckoutModal({
   if (!open) return null;
 
   const handlePlaceOrder = async () => {
+    if (!user) {
+      window.alert("Please log in to proceed to checkout.");
+      navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
+
     if (!selectedAddr) {
       setErrorMsg("Please select or add a delivery address.");
       return;
     }
     setLoading(true);
     setErrorMsg("");
+
     try {
+      // 1. Create order on the backend first
       const response = await orderService.placeOrder({
         address: selectedAddr,
         payment_method: payment,
       });
+
       if (response.data.success) {
-        setPlacedOrderInfo(response.data.order);
-        setSuccess(true);
-        if (typeof onOrderSuccess === "function") {
-          onOrderSuccess();
+        const orderData = response.data.order;
+        setPlacedOrderInfo(orderData);
+
+        // 2. Handle Razorpay Checkout Modal
+        if (payment === "razorpay") {
+          const scriptLoaded = await loadRazorpayScript();
+          if (!scriptLoaded) {
+            setErrorMsg(
+              "Failed to load Razorpay payment gateway. Please check your internet connection.",
+            );
+            setLoading(false);
+            return;
+          }
+
+          const keyId =
+            import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_mockkeyid123";
+
+          const options = {
+            key: keyId,
+            amount: Math.round(Number(orderData.total_amount) * 100), // in paise
+            currency: "INR",
+            name: "ShopEase",
+            description: `Payment for Order #${orderData.order_number}`,
+            order_id: orderData.razorpay_order_id,
+            prefill: {
+              name: selectedAddress?.full_name || "",
+              email: user?.email || "customer@example.com",
+              contact: selectedAddress?.phone
+                ? selectedAddress.phone.replace(/[^0-9]/g, "")
+                : "",
+            },
+            theme: {
+              color: "#7c3aed",
+            },
+            handler: async function (paymentResponse) {
+              setLoading(true);
+              try {
+                // Verify signature on backend
+                const verifyResponse = await paymentService.verifyPayment({
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                });
+
+                if (verifyResponse.data.success) {
+                  setSuccess(true);
+                  if (typeof onOrderSuccess === "function") {
+                    onOrderSuccess();
+                  }
+                } else {
+                  setErrorMsg(
+                    verifyResponse.data.message ||
+                      "Payment verification failed.",
+                  );
+                }
+              } catch (verifyErr) {
+                console.error("Verification failed:", verifyErr);
+                setErrorMsg(
+                  "Payment verification failed. Please contact customer support.",
+                );
+              } finally {
+                setLoading(false);
+              }
+            },
+            modal: {
+              ondismiss: function () {
+                setLoading(false);
+                setErrorMsg(
+                  "Payment cancelled by user. You can retry from your orders page.",
+                );
+              },
+            },
+          };
+
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+        } else {
+          // COD checkout successfully complete
+          setSuccess(true);
+          if (typeof onOrderSuccess === "function") {
+            onOrderSuccess();
+          }
+          setLoading(false);
         }
       } else {
         setErrorMsg(response.data.message || "Failed to place order.");
+        setLoading(false);
       }
     } catch (err) {
       console.error("Place order failed:", err);
-      const msg = err?.response?.data?.message || "An error occurred while placing your order.";
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        "An error occurred while placing your order.";
       setErrorMsg(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -196,22 +314,31 @@ function CheckoutModal({
             <IconCheckCircle />
             <h2 className="co-success__title">Order Placed! 🎉</h2>
             <p className="co-success__sub">
-              Your order <strong>#{placedOrderInfo?.order_number}</strong> has been confirmed.
+              Your order <strong>#{placedOrderInfo?.order_number}</strong> has
+              been confirmed.
             </p>
             <div className="co-success__detail">
               <div className="co-success__detail-row">
                 <span>Order Total</span>
-                <strong>₹{Number(placedOrderInfo?.total_amount || total).toLocaleString()}</strong>
+                <strong>
+                  ₹
+                  {Number(
+                    placedOrderInfo?.total_amount || total,
+                  ).toLocaleString()}
+                </strong>
               </div>
               <div className="co-success__detail-row">
                 <span>Payment</span>
                 <strong>
-                  {placedOrderInfo?.payment_method_display || (payment === "cod" ? "Cash on Delivery" : "Razorpay")}
+                  {payment === "cod" ? "Cash on Delivery" : "Razorpay Online"}
                 </strong>
               </div>
               <div className="co-success__detail-row">
                 <span>Deliver to</span>
-                <strong>{placedOrderInfo?.snapshot_full_name || selectedAddress?.full_name}</strong>
+                <strong>
+                  {placedOrderInfo?.snapshot_full_name ||
+                    selectedAddress?.full_name}
+                </strong>
               </div>
             </div>
             <button
@@ -242,7 +369,18 @@ function CheckoutModal({
             <div className="co-body">
               {/* Error Alert */}
               {errorMsg && (
-                <div style={{ padding: "12px", background: "#fef2f2", border: "1px solid #fee2e2", color: "#b91c1c", borderRadius: "10px", margin: "10px 20px 0 20px", fontSize: "14px", fontWeight: "500" }}>
+                <div
+                  style={{
+                    padding: "12px",
+                    background: "#fef2f2",
+                    border: "1px solid #fee2e2",
+                    color: "#b91c1c",
+                    borderRadius: "10px",
+                    margin: "10px 20px 0 20px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                  }}
+                >
                   ⚠️ {errorMsg}
                 </div>
               )}
@@ -258,8 +396,17 @@ function CheckoutModal({
 
                 <div className="co-addr-list">
                   {addresses.length === 0 ? (
-                    <div style={{ padding: "16px", color: "#64748b", fontSize: "14px", textAlign: "center", width: "100%" }}>
-                      No saved addresses found. Please add an address to continue checkout.
+                    <div
+                      style={{
+                        padding: "16px",
+                        color: "#64748b",
+                        fontSize: "14px",
+                        textAlign: "center",
+                        width: "100%",
+                      }}
+                    >
+                      No saved addresses found. Please add an address to
+                      continue checkout.
                     </div>
                   ) : (
                     addresses.map((a) => (
@@ -275,7 +422,9 @@ function CheckoutModal({
                           onChange={() => setSelectedAddr(a.id)}
                         />
                         <div className="co-addr-info">
-                          <span className="co-addr-tag">{a.is_default ? "Default" : "Address"}</span>
+                          <span className="co-addr-tag">
+                            {a.is_default ? "Default" : "Address"}
+                          </span>
                           <p className="co-addr-name">{a.full_name}</p>
                           <p className="co-addr-line">{`${a.address_line_1}, ${a.address_line_2 ? a.address_line_2 + ", " : ""}${a.city}, ${a.state} – ${a.postal_code}`}</p>
                           <p className="co-addr-mobile">📱 {a.phone}</p>
@@ -334,20 +483,24 @@ function CheckoutModal({
                     </div>
                   </label>
 
-                  <label className={`co-pay-card co-pay-card--disabled`}>
+                  <label
+                    className={`co-pay-card ${payment === "razorpay" ? "co-pay-card--active" : ""}`}
+                  >
                     <input
                       type="radio"
                       name="payment"
                       value="razorpay"
-                      disabled
                       className="co-addr-radio"
+                      checked={payment === "razorpay"}
+                      onChange={() => setPayment("razorpay")}
                     />
                     <span className="co-pay-icon">💳</span>
                     <div>
-                      <p className="co-pay-label">Razorpay</p>
-                      <p className="co-pay-sub">Coming soon</p>
+                      <p className="co-pay-label">Razorpay Online</p>
+                      <p className="co-pay-sub">
+                        Cards, UPI, Netbanking, Wallet
+                      </p>
                     </div>
-                    <span className="co-pay-badge">Soon</span>
                   </label>
                 </div>
               </section>
@@ -370,7 +523,9 @@ function CheckoutModal({
                           alt={item.product_name}
                           className="co-item-img"
                         />
-                        <span className="co-item-name">{item.product_name}</span>
+                        <span className="co-item-name">
+                          {item.product_name}
+                        </span>
                         <span className="co-item-price">
                           ₹{(item.price * item.quantity).toLocaleString()}
                         </span>

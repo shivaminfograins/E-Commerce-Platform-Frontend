@@ -51,17 +51,32 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
   // immediate UI feedback without waiting for API response).
   const subtotal = cartItems.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
-    0
+    0,
   );
   const shipping = subtotal > 999 ? 0 : 99;
   const total = subtotal + shipping;
 
   useEffect(() => {
     if (location.state?.autoCheckout) {
+      if (!user) {
+        window.alert("Please log in to proceed to checkout.");
+        navigate("/login", { state: { from: "/cart" }, replace: true });
+        return;
+      }
       setCheckoutOpen(true);
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate]);
+  }, [location, navigate, user]);
+
+  const handleCheckoutClick = () => {
+    if (!user) {
+      window.alert("Please log in to proceed to checkout.");
+      navigate("/login", { state: { from: "/cart" } });
+      return;
+    }
+
+    setCheckoutOpen(true);
+  };
 
   // ── Quantity increment ─────────────────────────────────────
   const handleAdd = async (item) => {
@@ -70,7 +85,10 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
     if (newQty > item.stock) return; // respect stock limit
     setUpdating(item.variant_id);
     try {
-      const response = await cartService.updateQuantity(item.variant_id, newQty);
+      const response = await cartService.updateQuantity(
+        item.variant_id,
+        newQty,
+      );
       setCart(response.data);
     } catch (err) {
       console.error("Failed to update quantity:", err);
@@ -89,7 +107,10 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
     const newQty = item.quantity - 1;
     setUpdating(item.variant_id);
     try {
-      const response = await cartService.updateQuantity(item.variant_id, newQty);
+      const response = await cartService.updateQuantity(
+        item.variant_id,
+        newQty,
+      );
       setCart(response.data);
     } catch (err) {
       console.error("Failed to update quantity:", err);
@@ -160,7 +181,9 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
               <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
             </svg>
             <h2>Your cart is empty</h2>
-            <p>Looks like you haven&apos;t added any products to your cart yet.</p>
+            <p>
+              Looks like you haven&apos;t added any products to your cart yet.
+            </p>
             <Link to="/" className="btn btn--primary empty-shopping-btn">
               Continue Shopping
             </Link>
@@ -310,7 +333,7 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
               </div>
               <button
                 className="btn btn--primary btn--checkout"
-                onClick={() => setCheckoutOpen(true)}
+                onClick={handleCheckoutClick}
               >
                 Proceed to Checkout
               </button>
@@ -330,6 +353,7 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
         shipping={shipping}
         total={total}
         onOrderSuccess={() => setCart({})}
+        user={user}
       />
 
       <Footer />

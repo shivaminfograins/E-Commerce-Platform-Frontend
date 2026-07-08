@@ -21,6 +21,8 @@ function Home({
   setWishlist,
   user,
   setUser,
+  onCartModalAdd,
+  onCartModalRemove,
 }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
@@ -96,7 +98,11 @@ function Home({
 
   const handleToggleWishlist = (productId) => {
     if (!user) {
-      if (window.confirm("You need to be logged in to add products to your wishlist. Would you like to log in now?")) {
+      if (
+        window.confirm(
+          "You need to be logged in to add products to your wishlist. Would you like to log in now?",
+        )
+      ) {
         navigate("/login");
       }
       return;
@@ -107,7 +113,6 @@ function Home({
   const searchFilteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase()),
   );
-
 
   const productsWithMeta = searchFilteredProducts.map((product) => ({
     ...product,
@@ -165,8 +170,8 @@ function Home({
           isOpen={isCartOpen}
           cartItems={cartItems}
           onClose={() => setIsCartOpen(false)}
-          onAdd={handleAddToCart}
-          onRemove={handleRemoveFromCart}
+          onAdd={onCartModalAdd}
+          onRemove={onCartModalRemove}
         />
       </main>
 

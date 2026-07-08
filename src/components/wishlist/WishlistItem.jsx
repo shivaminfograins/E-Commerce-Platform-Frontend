@@ -11,7 +11,7 @@ function WishlistItem({ item, onRemove, onAddToCart }) {
       <h3 style={{ fontSize: "18px", fontWeight: "700", color: "#0f172a", margin: "0 30px" }}>₹{item.price.toLocaleString()}</h3>
 
       <div className="wishlist-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-        <button className="btn btn--primary" onClick={() => onAddToCart && onAddToCart(item.id)}>Add To Cart</button>
+        <button className="btn btn--primary" onClick={() => onAddToCart && onAddToCart(item)}>Add To Cart</button>
 
         <button className="remove-btn" onClick={() => onRemove && onRemove(item.id)} style={{ padding: "10px 18px", border: "1px solid #cbd5e1", background: "none", color: "#64748b", borderRadius: "10px", cursor: "pointer", fontWeight: "600", fontSize: "14px", transition: "all 0.2s" }}>Remove</button>
       </div>

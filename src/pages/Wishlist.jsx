@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import WishlistList from "../components/wishlist/WishlistList";
 import WishlistSummary from "../components/wishlist/WishlistSummary";
 import EmptyWishlist from "../components/wishlist/EmptyWishlist";
 import api from "../api/axios";
+import cartService from "../services/cartService";
 
 function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) {
+  const navigate = useNavigate();
   const [wishlistedProducts, setWishlistedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +31,8 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
       name: product.name,
       brand: "ShopEase",
       price: basePrice,
-      image: imageUrl
+      image: imageUrl,
+      variantId: defaultVariant?.id
     };
   };
 
@@ -60,13 +64,24 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
     setWishlistedProducts(prev => prev.filter(item => item.id !== productId));
   };
 
-  const handleAddToCart = (productId) => {
-    setCart((prev) => ({
-      ...prev,
-      [productId]: (prev[productId] || 0) + 1,
-    }));
-    setWishlist(productId);
-    setWishlistedProducts(prev => prev.filter(item => item.id !== productId));
+  const handleAddToCart = async (item) => {
+    if (!item.variantId) {
+      // Fallback: If no variant found, redirect to detail page
+      navigate(`/product/${item.id}`);
+      return;
+    }
+    
+    try {
+      const response = await cartService.addToCart(item.variantId, 1);
+      // Update global cart state
+      setCart(response.data);
+      // Remove from wishlist
+      setWishlist(item.id);
+      setWishlistedProducts(prev => prev.filter(wishItem => wishItem.id !== item.id));
+    } catch (err) {
+      console.error("Failed to add wishlisted item to cart:", err);
+      alert("Failed to add item to cart. Please try again.");
+    }
   };
 
   return (
