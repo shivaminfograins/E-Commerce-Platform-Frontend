@@ -114,8 +114,8 @@ function Footer() {
           <h4>Support</h4>
           <ul>
             <li><a href="#">Contact Us</a></li>
-            <li><a href="#">Help Center</a></li>
-            <li><a href="#">Returns & Refunds</a></li>
+            <li><Link to="/faq">Help Center / FAQ</Link></li>
+            <li><Link to="/returns">Returns & Refunds</Link></li>
             <li><a href="#">Shipping Info</a></li>
           </ul>
         </div>
@@ -181,8 +181,9 @@ function Footer() {
         </div>
 
         <div className="footer-bottom-links">
-          <a href="#">Privacy Policy</a>
-          <a href="#">Terms of Service</a>
+          <Link to="/privacy">Privacy Policy</Link>
+          <Link to="/terms">Terms of Service</Link>
+          <Link to="/faq">FAQ</Link>
         </div>
       </div>
     </footer>

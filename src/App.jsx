@@ -1,6 +1,6 @@
 import "./App.css";
 import { useState, useEffect, useCallback } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Cart from "./pages/Cart";
@@ -8,6 +8,10 @@ import ProductDetails from "./pages/ProductDetails";
 import CategoryPage from "./pages/CategoryPage";
 import CategoryProducts from "./pages/CategoryProducts";
 import Products from "./pages/Products";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import FAQ from "./pages/FAQ";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import ReturnsRefunds from "./pages/ReturnsRefunds";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -319,9 +323,21 @@ function App() {
     onCartModalRemove: handleCartModalRemove,
   };
 
+// ScrollToTop component to scroll the window to the top on every route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home {...sharedProps} />} />
         <Route path="/cart" element={<Cart {...sharedProps} />} />
@@ -349,6 +365,10 @@ function App() {
         <Route path="/profile" element={<Profile {...sharedProps} />} />
         <Route path="/orders" element={<MyOrders {...sharedProps} />} />
         <Route path="/address-book" element={<AddressBook {...sharedProps} />} />
+        <Route path="/terms" element={<TermsAndConditions {...sharedProps} />} />
+        <Route path="/faq" element={<FAQ {...sharedProps} />} />
+        <Route path="/privacy" element={<PrivacyPolicy {...sharedProps} />} />
+        <Route path="/returns" element={<ReturnsRefunds {...sharedProps} />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,9 +1,35 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { productService } from "../services/productService";
 
 function Navbar({ cartCount, wishlistCount = 0, search, setSearch, onCartClick, onWishlistClick, user, setUser }) {
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!search || search.trim() === "") {
+      setSuggestions([]);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const data = await productService.getProducts({ search: search.trim() });
+        const items =
+          Array.isArray(data) && data.length
+            ? data
+            : data.results || data.products || [];
+        setSuggestions(items.slice(0, 10));
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [search]);
 
   return (
     <header className="app-header">
@@ -31,9 +57,43 @@ function Navbar({ cartCount, wishlistCount = 0, search, setSearch, onCartClick, 
             placeholder="Search products..."
             className="search-input"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setShowSuggestions(true);
+            }}
+            onFocus={() => {
+              if (search && search.trim() !== "") {
+                setShowSuggestions(true);
+              }
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setShowSuggestions(false);
+              }, 200);
+            }}
           />
           <span className="search-shortcut">⌘K</span>
+
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="search-suggestions-dropdown">
+              {suggestions.map((product) => (
+                <div
+                  key={product.id}
+                  className="suggestion-item"
+                  onClick={() => {
+                    navigate(`/product/${product.id}`);
+                    setShowSuggestions(false);
+                  }}
+                >
+                  <svg className="suggestion-search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <span>{product.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

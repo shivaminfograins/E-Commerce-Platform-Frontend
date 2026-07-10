@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Categories from "../components/Categories";
@@ -7,11 +7,51 @@ import ProductList from "../components/ProductList";
 import Newsletter from "../components/Newsletter";
 import Footer from "../components/Footer";
 import CartModal from "../components/CartModal";
-import { useProducts } from "../hooks/useProducts";
+import { productService } from "../services/productService";
 import PromotionBanner from "../components/PromotionBanner";
+import BrandShowcase from "../components/BrandShowcase";
+import Testimonials from "../components/Testimonials";
+import FloatingWidgets from "../components/FloatingWidgets";
 
 // import services
 import categoryService from "../services/categoryService";
+
+function FlashSaleCountdown() {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      const diff = endOfDay - now;
+
+      if (diff <= 0) {
+        return "00:00:00";
+      }
+
+      const hrs = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, "0");
+      const mins = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0");
+      const secs = String(Math.floor((diff / 1000) % 60)).padStart(2, "0");
+      return `${hrs}:${mins}:${secs}`;
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const interval = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flash-sale-countdown">
+      <span className="live-badge">⚡ FLASH DEAL</span>
+      <span className="ends-in">Ends in:</span>
+      <span className="timer-digits">{timeLeft}</span>
+    </div>
+  );
+}
 
 function Home({
   cart = {},
@@ -25,7 +65,17 @@ function Home({
   onCartModalRemove,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState("");
+
+  // Sync search state from navigation redirect (e.g. from Terms or FAQ page)
+  useEffect(() => {
+    if (location.state?.initialSearch !== undefined) {
+      setSearch(location.state.initialSearch);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate, location.pathname]);
+
   const [selectedCategory, setSelectedCategory] = useState({
     id: 0,
     name: "All",
@@ -36,22 +86,94 @@ function Home({
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoryError, setCategoryError] = useState("");
 
-  const {
-    products,
-    loading: loadingProducts,
-    error: productError,
-  } = useProducts(selectedCategory.id);
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productError, setProductError] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Search Results Filters & Sorting State
+  const [filterBrand, setFilterBrand] = useState("All");
+  const [filterPrice, setFilterPrice] = useState("All");
+  const [filterRating, setFilterRating] = useState(0);
+  const [filterDiscount, setFilterDiscount] = useState(0);
+  const [sortBy, setSortBy] = useState("newest");
+
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [search]);
+
+  // Fetch products matching category and debounced search
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoadingProducts(true);
+      setProductError("");
+      try {
+        const params = {};
+        if (selectedCategory.id !== 0) {
+          params.category = selectedCategory.id;
+        }
+        if (debouncedSearch.trim() !== "") {
+          params.search = debouncedSearch.trim();
+        }
+
+        const data = await productService.getProducts(params);
+        const items =
+          Array.isArray(data) && data.length
+            ? data
+            : data.results || data.products || [];
+
+        const normalizedProducts = items.map((product) => {
+          const rawImage =
+            product.images?.[0]?.image || product.images?.[0]?.url || "";
+          const normalizeUrl = (url) => {
+            if (!url || typeof url !== "string") return "";
+            if (url.startsWith("http://") || url.startsWith("https://")) return url;
+            return url;
+          };
+          const imageUrl = normalizeUrl(rawImage);
+          const firstVariant = product.variants?.[0] || {};
+          const price = firstVariant.price ? Number(firstVariant.price) : 0;
+
+          // Generate realistic discount structure for production UI look
+          const discountPercent = product.id % 3 === 0 ? 15 : product.id % 4 === 0 ? 25 : 0;
+          const originalPrice = discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : price;
+
+          return {
+            id: product.id,
+            name: product.name,
+            brand: product.brand || "ShopEase Brand",
+            image: imageUrl,
+            price,
+            originalPrice,
+            discountPercent,
+            rating: product.rating || (4.0 + (product.id % 10) * 0.1),
+            reviewsCount: product.reviewsCount || (12 + product.id * 7),
+            badge: product.id % 5 === 0 ? "Best Seller" : product.id % 3 === 0 ? "Hot" : "",
+            category: product.category,
+            description: product.description,
+          };
+        });
+
+        setProducts(normalizedProducts);
+      } catch (err) {
+        setProductError("Failed to load products.");
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
+  }, [selectedCategory.id, debouncedSearch]);
 
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
-  // const categories = [
-  //   "All",
-  //   "Mobiles",
-  //   "Laptops",
-  //   "Accessories",
-  //   "Fashion",
-  //   "Shoes",
-  // ];
   // fetch categories from the API when the component mounts
   useEffect(() => {
     fetchCategories();
@@ -66,8 +188,6 @@ function Home({
         id: category.id,
         name: category.name,
       }));
-      console.log("Fetched Categories:", myCategories); // Debugging line
-      // Add "All" option at the beginning
       setCategories([{ id: 0, name: "All" }, ...myCategories]);
     } catch (error) {
       console.error(error);
@@ -110,19 +230,51 @@ function Home({
     setWishlist(productId);
   };
 
-  const searchFilteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const isSearching = debouncedSearch.trim() !== "";
 
-  const productsWithMeta = searchFilteredProducts.map((product) => ({
+  const productsWithMeta = products.map((product) => ({
     ...product,
     qty: cart[product.id] || 0,
     isWishlisted: wishlist.includes(product.id),
   }));
 
-  const latestProducts = [...productsWithMeta]
-    .sort((a, b) => b.id - a.id)
-    .slice(0, 8);
+  // Filtering & Sorting Logic for search results
+  const uniqueBrands = Array.from(new Set(productsWithMeta.map(p => p.brand).filter(Boolean)));
+
+  const filteredSearchResults = productsWithMeta.filter((product) => {
+    // Brand Filter
+    if (filterBrand !== "All" && product.brand !== filterBrand) return false;
+
+    // Price Filter
+    if (filterPrice === "under10k" && product.price >= 10000) return false;
+    if (filterPrice === "10kto50k" && (product.price < 10000 || product.price > 50000)) return false;
+    if (filterPrice === "above50k" && product.price <= 50000) return false;
+
+    // Rating Filter
+    if (filterRating > 0 && product.rating < filterRating) return false;
+
+    // Discount Filter
+    if (filterDiscount > 0 && product.discountPercent < filterDiscount) return false;
+
+    return true;
+  });
+
+  // Sorting
+  if (sortBy === "lowToHigh") {
+    filteredSearchResults.sort((a, b) => a.price - b.price);
+  } else if (sortBy === "highToLow") {
+    filteredSearchResults.sort((a, b) => b.price - a.price);
+  } else if (sortBy === "rating") {
+    filteredSearchResults.sort((a, b) => b.rating - a.rating);
+  } else {
+    // newest arrivals
+    filteredSearchResults.sort((a, b) => b.id - a.id);
+  }
+
+  // Diverse Sections (Non-searching mode)
+  const flashSaleProducts = productsWithMeta.filter(p => p.discountPercent > 0).slice(0, 4);
+  const bestSellerProducts = productsWithMeta.filter(p => p.rating >= 4.4).slice(0, 4);
+  const recommendedProducts = [...productsWithMeta].reverse().slice(0, 4);
 
   return (
     <>
@@ -138,13 +290,15 @@ function Home({
       />
 
       <main className="container">
-        <Hero />
+        {!isSearching && <Hero />}
 
-        <Categories
-          categories={categories}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        />
+        {!isSearching && (
+          <Categories
+            categories={categories}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+          />
+        )}
 
         {loadingProducts && (
           <p className="section-message">Loading products...</p>
@@ -155,17 +309,251 @@ function Home({
           </p>
         )}
 
-        <ProductList
-          products={latestProducts}
-          onAdd={handleAddToCart}
-          onRemove={handleRemoveFromCart}
-          onToggleWishlist={handleToggleWishlist}
-          showViewAll={true}
-        />
+        {!loadingProducts && !productError && (
+          <>
+            {isSearching ? (
+              // Search Results Layout with Filter/Sort Side Panel
+              <div className="search-results-layout">
+                <aside className="search-filters-sidebar">
+                  <div className="sidebar-header">
+                    <h3>Filters</h3>
+                    <button
+                      className="clear-filters-btn"
+                      onClick={() => {
+                        setFilterBrand("All");
+                        setFilterPrice("All");
+                        setFilterRating(0);
+                        setFilterDiscount(0);
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  </div>
 
-        <PromotionBanner />
+                  <div className="filter-group">
+                    <h4>Brand</h4>
+                    <select
+                      value={filterBrand}
+                      onChange={(e) => setFilterBrand(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="All">All Brands</option>
+                      {uniqueBrands.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-        <Newsletter />
+                  <div className="filter-group">
+                    <h4>Price Range</h4>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="priceRange"
+                        checked={filterPrice === "All"}
+                        onChange={() => setFilterPrice("All")}
+                      />
+                      <span>All Prices</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="priceRange"
+                        checked={filterPrice === "under10k"}
+                        onChange={() => setFilterPrice("under10k")}
+                      />
+                      <span>Under ₹10,000</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="priceRange"
+                        checked={filterPrice === "10kto50k"}
+                        onChange={() => setFilterPrice("10kto50k")}
+                      />
+                      <span>₹10,000 - ₹50,000</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="priceRange"
+                        checked={filterPrice === "above50k"}
+                        onChange={() => setFilterPrice("above50k")}
+                      />
+                      <span>Above ₹50,000</span>
+                    </label>
+                  </div>
+
+                  <div className="filter-group">
+                    <h4>Customer Rating</h4>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="rating"
+                        checked={filterRating === 0}
+                        onChange={() => setFilterRating(0)}
+                      />
+                      <span>All Ratings</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="rating"
+                        checked={filterRating === 4}
+                        onChange={() => setFilterRating(4)}
+                      />
+                      <span>4★ & above</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="rating"
+                        checked={filterRating === 3}
+                        onChange={() => setFilterRating(3)}
+                      />
+                      <span>3★ & above</span>
+                    </label>
+                  </div>
+
+                  <div className="filter-group">
+                    <h4>Discount Percentage</h4>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="discount"
+                        checked={filterDiscount === 0}
+                        onChange={() => setFilterDiscount(0)}
+                      />
+                      <span>Any Discount</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="discount"
+                        checked={filterDiscount === 10}
+                        onChange={() => setFilterDiscount(10)}
+                      />
+                      <span>10% Off & more</span>
+                    </label>
+                    <label className="filter-label">
+                      <input
+                        type="radio"
+                        name="discount"
+                        checked={filterDiscount === 20}
+                        onChange={() => setFilterDiscount(20)}
+                      />
+                      <span>20% Off & more</span>
+                    </label>
+                  </div>
+                </aside>
+
+                <div className="search-results-content">
+                  <div className="results-toolbar">
+                    <span className="results-count-text">
+                      Showing <strong>{filteredSearchResults.length}</strong> products for "{debouncedSearch}"
+                    </span>
+                    <div className="sort-control-wrapper">
+                      <span className="sort-label">Sort by:</span>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="sort-select"
+                      >
+                        <option value="newest">Newest Arrivals</option>
+                        <option value="lowToHigh">Price: Low to High</option>
+                        <option value="highToLow">Price: High to Low</option>
+                        <option value="rating">Customer Ratings</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {filteredSearchResults.length === 0 ? (
+                    <p className="section-message">No products match your filters.</p>
+                  ) : (
+                    <ProductList
+                      products={filteredSearchResults}
+                      onAdd={handleAddToCart}
+                      onRemove={handleRemoveFromCart}
+                      onToggleWishlist={handleToggleWishlist}
+                      showViewAll={false}
+                      title=""
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Diverse Product Sections
+              <div className="homepage-sections">
+                {/* 1. Deals of the Day / Flash Sale */}
+                {flashSaleProducts.length > 0 && (
+                  <section className="homepage-section-block flash-sales-section">
+                    <div className="section-header-row">
+                      <div className="header-title-side">
+                        <h2>Deals of the Day</h2>
+                        <FlashSaleCountdown />
+                      </div>
+                    </div>
+                    <ProductList
+                      products={flashSaleProducts}
+                      onAdd={handleAddToCart}
+                      onRemove={handleRemoveFromCart}
+                      onToggleWishlist={handleToggleWishlist}
+                      showViewAll={true}
+                      title=""
+                    />
+                  </section>
+                )}
+
+                {/* 2. Best Sellers */}
+                {bestSellerProducts.length > 0 && (
+                  <section className="homepage-section-block best-sellers-section">
+                    <div className="section-header-row">
+                      <h2>Trending & Best Sellers</h2>
+                    </div>
+                    <ProductList
+                      products={bestSellerProducts}
+                      onAdd={handleAddToCart}
+                      onRemove={handleRemoveFromCart}
+                      onToggleWishlist={handleToggleWishlist}
+                      showViewAll={true}
+                      title=""
+                    />
+                  </section>
+                )}
+
+                {/* 3. Recommended for You */}
+                {recommendedProducts.length > 0 && (
+                  <section className="homepage-section-block recommended-section">
+                    <div className="section-header-row">
+                      <h2>Recommended for You</h2>
+                    </div>
+                    <ProductList
+                      products={recommendedProducts}
+                      onAdd={handleAddToCart}
+                      onRemove={handleRemoveFromCart}
+                      onToggleWishlist={handleToggleWishlist}
+                      showViewAll={true}
+                      title=""
+                    />
+                  </section>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {!isSearching && <PromotionBanner />}
+
+        {/* Brand Showcase */}
+        {!isSearching && <BrandShowcase />}
+
+        {/* Testimonials */}
+        {!isSearching && <Testimonials />}
+
+        {!isSearching && <Newsletter />}
+
         <CartModal
           isOpen={isCartOpen}
           cartItems={cartItems}
@@ -174,6 +562,9 @@ function Home({
           onRemove={onCartModalRemove}
         />
       </main>
+
+      {/* Floating Utilities */}
+      <FloatingWidgets />
 
       <Footer />
     </>

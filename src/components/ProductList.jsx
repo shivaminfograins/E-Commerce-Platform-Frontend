@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
 import ProductCard from "./ProductCard";
 
-function ProductList({ products, onAdd, onRemove, onToggleWishlist, showViewAll = false }) {
+function ProductList({ products, onAdd, onRemove, onToggleWishlist, showViewAll = false, title = "Featured Products" }) {
   return (
     <section>
       <div className="section-header">
-        <h2>Featured Products</h2>
+        <h2>{title}</h2>
 
         {showViewAll ? (
           <Link to="/products" className="view-all-link">
