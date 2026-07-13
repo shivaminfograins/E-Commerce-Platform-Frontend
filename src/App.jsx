@@ -20,6 +20,7 @@ import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
 import AddressBook from "./pages/AddressBook";
+import AdminRoutes from "./admin/routes/AdminRoutes";
 
 import api from "./api/axios";
 import cartService from "./services/cartService";
@@ -369,6 +370,7 @@ function ScrollToTop() {
         <Route path="/faq" element={<FAQ {...sharedProps} />} />
         <Route path="/privacy" element={<PrivacyPolicy {...sharedProps} />} />
         <Route path="/returns" element={<ReturnsRefunds {...sharedProps} />} />
+        <Route path="/admin/*" element={<AdminRoutes />} />
       </Routes>
     </BrowserRouter>
   );

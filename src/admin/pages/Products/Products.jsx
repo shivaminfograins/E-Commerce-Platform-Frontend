@@ -1,0 +1,246 @@
+import React, { useState, useEffect } from "react";
+import { Box, Typography, Button, TextField, InputAdornment, Alert, Snackbar, CircularProgress, MenuItem, Paper } from "@mui/material";
+import ProductTable from "../../components/Products/ProductTable";
+import ProductModal from "../../components/Products/ProductModal";
+import DeleteDialog from "../../components/Products/DeleteDialog";
+import productService from "../../services/productService";
+import categoryService from "../../services/categoryService";
+
+function Products() {
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // CRUD States
+  const [modalOpen, setModalOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Toast Notification
+  const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [prodData, catData] = await Promise.all([
+        productService.getProducts(),
+        categoryService.getCategories()
+      ]);
+      setProducts(prodData);
+      setCategories(catData.filter(c => c.status === "Active"));
+    } catch (err) {
+      setError("Failed to fetch product data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenAddModal = () => {
+    setSelectedProduct(null);
+    setModalOpen(true);
+  };
+
+  const handleOpenEditModal = (product) => {
+    setSelectedProduct(product);
+    setModalOpen(true);
+  };
+
+  const handleOpenDeleteDialog = (product) => {
+    setSelectedProduct(product);
+    setDeleteOpen(true);
+  };
+
+  const handleModalSubmit = async (formData) => {
+    setActionLoading(true);
+    try {
+      if (selectedProduct) {
+        // Edit Mode
+        const updated = await productService.updateProduct(selectedProduct.id, formData);
+        setProducts((prev) => prev.map((p) => (p.id === selectedProduct.id ? updated : p)));
+        showToast("Product updated successfully!");
+      } else {
+        // Add Mode
+        const created = await productService.createProduct(formData);
+        setProducts((prev) => [...prev, created]);
+        showToast("Product created successfully!");
+      }
+      setModalOpen(false);
+    } catch (err) {
+      showToast("Operation failed. Please check inputs and try again.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedProduct) return;
+    setActionLoading(true);
+    try {
+      await productService.deleteProduct(selectedProduct.id);
+      setProducts((prev) => prev.filter((p) => p.id !== selectedProduct.id));
+      showToast("Product deleted successfully!");
+      setDeleteOpen(false);
+    } catch (err) {
+      showToast("Failed to delete product.", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const showToast = (message, severity = "success") => {
+    setToast({ open: true, message, severity });
+  };
+
+  const handleCloseToast = () => {
+    setToast((prev) => ({ ...prev, open: false }));
+  };
+
+  // Filter products based on search & category selection
+  const filteredProducts = products.filter((product) => {
+    const matchesCategory =
+      selectedCategoryFilter === "All" || product.category === selectedCategoryFilter;
+
+    const query = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !query ||
+      product.name.toLowerCase().includes(query) ||
+      product.brand.toLowerCase().includes(query) ||
+      product.id.toString().includes(query);
+
+    return matchesCategory && matchesSearch;
+  });
+
+  return (
+    <Box>
+      {/* Header Row */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4, flexWrap: "wrap", gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: "#1e293b" }}>
+            Product Listings
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Configure and maintain items, listings, pricing variations, and stock values.
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleOpenAddModal}
+          startIcon={<span>+</span>}
+          sx={{
+            py: 1.2,
+            px: 2.5,
+            borderRadius: "10px",
+            boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
+            fontWeight: 700
+          }}
+        >
+          Add Product
+        </Button>
+      </Box>
+
+      {/* Toolbar - Filters and Search */}
+      <Box sx={{ mb: 4, display: "flex", gap: 2, flexWrap: "wrap" }}>
+        <TextField
+          placeholder="Search products by name, brand or ID..."
+          variant="outlined"
+          size="small"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          sx={{ width: { xs: "100%", sm: 350 }, bgcolor: "white", borderRadius: "10px", "& fieldset": { borderRadius: "10px" } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start" sx={{ color: "#64748b" }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </InputAdornment>
+            )
+          }}
+        />
+
+        <TextField
+          select
+          size="small"
+          label="Category Filter"
+          value={selectedCategoryFilter}
+          onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+          sx={{ minWidth: 180, bgcolor: "white", borderRadius: "10px", "& fieldset": { borderRadius: "10px" } }}
+        >
+          <MenuItem value="All">All Categories</MenuItem>
+          {categories.map((c) => (
+            <MenuItem key={c.id} value={c.name}>
+              {c.name}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      {/* Content Area */}
+      {loading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error" sx={{ borderRadius: "10px" }}>{error}</Alert>
+      ) : filteredProducts.length === 0 ? (
+        <Paper sx={{ textAlign: "center", py: 8, px: 2, borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.05)", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+          <Typography variant="h2" sx={{ fontSize: "3rem", mb: 2 }}>
+            📦
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: "#1e293b" }}>
+            No Products Found
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 3 }}>
+            Try refining your keyword query or category selection filter.
+          </Typography>
+        </Paper>
+      ) : (
+        <ProductTable
+          products={filteredProducts}
+          onEdit={handleOpenEditModal}
+          onDelete={handleOpenDeleteDialog}
+        />
+      )}
+
+      {/* Dialog overlays */}
+      <ProductModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleModalSubmit}
+        initialValues={selectedProduct}
+        categories={categories}
+        loading={actionLoading}
+      />
+
+      <DeleteDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        itemName={selectedProduct?.name || ""}
+        loading={actionLoading}
+      />
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={4000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: "100%", borderRadius: "10px" }}>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}
+
+export default Products;
