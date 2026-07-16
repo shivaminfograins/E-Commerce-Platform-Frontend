@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Box, Typography, Button, TextField, InputAdornment, Alert, Snackbar, CircularProgress, MenuItem, Paper } from "@mui/material";
 import ProductTable from "../../components/Products/ProductTable";
 import ProductModal from "../../components/Products/ProductModal";
 import DeleteDialog from "../../components/Products/DeleteDialog";
 import productService from "../../services/productService";
 import categoryService from "../../services/categoryService";
+import brandService from "../../services/brandService";
 
 function Products() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("All");
+  const [selectedBrandFilter, setSelectedBrandFilter] = useState("All");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,26 +27,29 @@ function Products() {
   // Toast Notification
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     setLoading(true);
     setError("");
     try {
-      const [prodData, catData] = await Promise.all([
+      const [prodData, catData, brandData] = await Promise.all([
         productService.getProducts(),
-        categoryService.getCategories()
+        categoryService.getCategories(),
+        brandService.getBrands()
       ]);
       setProducts(prodData);
       setCategories(catData.filter(c => c.status === "Active"));
-    } catch (err) {
+      setBrands(brandData.filter(b => b.status === "Active"));
+    } catch {
       setError("Failed to fetch product data. Please try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, []);
 
   const handleOpenAddModal = () => {
     setSelectedProduct(null);
@@ -75,7 +81,7 @@ function Products() {
         showToast("Product created successfully!");
       }
       setModalOpen(false);
-    } catch (err) {
+    } catch {
       showToast("Operation failed. Please check inputs and try again.", "error");
     } finally {
       setActionLoading(false);
@@ -90,7 +96,7 @@ function Products() {
       setProducts((prev) => prev.filter((p) => p.id !== selectedProduct.id));
       showToast("Product deleted successfully!");
       setDeleteOpen(false);
-    } catch (err) {
+    } catch {
       showToast("Failed to delete product.", "error");
     } finally {
       setActionLoading(false);
@@ -105,19 +111,25 @@ function Products() {
     setToast((prev) => ({ ...prev, open: false }));
   };
 
-  // Filter products based on search & category selection
+  // Filter products based on search, category & brand selection
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
       selectedCategoryFilter === "All" || product.category === selectedCategoryFilter;
+
+    const matchesBrand =
+      selectedBrandFilter === "All" || product.brand === selectedBrandFilter;
+
+    const brandObj = brands.find((b) => b.id === product.brand);
+    const brandName = brandObj ? brandObj.name : "";
 
     const query = searchQuery.toLowerCase().trim();
     const matchesSearch =
       !query ||
       product.name.toLowerCase().includes(query) ||
-      product.brand.toLowerCase().includes(query) ||
+      brandName.toLowerCase().includes(query) ||
       product.id.toString().includes(query);
 
-    return matchesCategory && matchesSearch;
+    return matchesCategory && matchesBrand && matchesSearch;
   });
 
   return (
@@ -182,6 +194,22 @@ function Products() {
             </MenuItem>
           ))}
         </TextField>
+
+        <TextField
+          select
+          size="small"
+          label="Brand Filter"
+          value={selectedBrandFilter}
+          onChange={(e) => setSelectedBrandFilter(e.target.value)}
+          sx={{ minWidth: 180, bgcolor: "white", borderRadius: "10px", "& fieldset": { borderRadius: "10px" } }}
+        >
+          <MenuItem value="All">All Brands</MenuItem>
+          {brands.map((b) => (
+            <MenuItem key={b.id} value={b.id}>
+              {b.name}
+            </MenuItem>
+          ))}
+        </TextField>
       </Box>
 
       {/* Content Area */}
@@ -206,6 +234,8 @@ function Products() {
       ) : (
         <ProductTable
           products={filteredProducts}
+          categories={categories}
+          brands={brands}
           onEdit={handleOpenEditModal}
           onDelete={handleOpenDeleteDialog}
         />
@@ -218,6 +248,7 @@ function Products() {
         onSubmit={handleModalSubmit}
         initialValues={selectedProduct}
         categories={categories}
+        brands={brands}
         loading={actionLoading}
       />
 

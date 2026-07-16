@@ -183,12 +183,62 @@ function Home({
     try {
       setLoadingCategories(true);
 
-      const data = await categoryService.getCategories();
-      let myCategories = data.map((category) => ({
-        id: category.id,
-        name: category.name,
-      }));
-      setCategories([{ id: 0, name: "All" }, ...myCategories]);
+      const [catData, imgData] = await Promise.all([
+        categoryService.getCategories(),
+        categoryService.getCategoryImages().catch(() => [])
+      ]);
+
+      const BACKEND_ORIGIN = import.meta.env.VITE_MEDIA_BASE_URL || "http://127.0.0.1:8000";
+      const normalizeMediaUrl = (url) => {
+        if (!url) return "";
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+        if (url.startsWith("/media/")) return BACKEND_ORIGIN + url;
+        return url;
+      };
+
+      const imageMap = {};
+      if (Array.isArray(imgData)) {
+        imgData.forEach(img => {
+          if (img.category) {
+            imageMap[img.category] = normalizeMediaUrl(img.image);
+          }
+        });
+      }
+
+      const fallbackImages = {
+        "all": "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=300&fit=crop&q=80",
+        "electronics": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=150&fit=crop&q=60",
+        "books": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&fit=crop&q=60",
+        "home": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=150&fit=crop&q=60",
+        "sports": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=150&fit=crop&q=60",
+        "arts": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=150&fit=crop&q=60",
+        "gifts": "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=150&fit=crop&q=60",
+        "cat 1": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=150&fit=crop&q=60",
+      };
+
+      let myCategories = catData.map((category) => {
+        const catNameLower = category.name.toLowerCase();
+        const apiImagePath = category.images?.[0]?.image || category.images?.[0]?.url || "";
+        let image = normalizeMediaUrl(apiImagePath) || imageMap[category.id] || "";
+        if (!image) {
+          const key = Object.keys(fallbackImages).find(k => catNameLower.includes(k));
+          image = key ? fallbackImages[key] : "https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?w=150&fit=crop&q=60";
+        }
+        return {
+          id: category.id,
+          name: category.name,
+          image: image
+        };
+      });
+
+      setCategories([
+        { 
+          id: 0, 
+          name: "All", 
+          image: fallbackImages["all"] 
+        }, 
+        ...myCategories
+      ]);
     } catch (error) {
       console.error(error);
       setCategoryError("Failed to load categories.");
@@ -273,8 +323,8 @@ function Home({
 
   // Diverse Sections (Non-searching mode)
   const flashSaleProducts = productsWithMeta.filter(p => p.discountPercent > 0).slice(0, 4);
-  const bestSellerProducts = productsWithMeta.filter(p => p.rating >= 4.4).slice(0, 4);
-  const recommendedProducts = [...productsWithMeta].reverse().slice(0, 4);
+  const bestSellerProducts = [...productsWithMeta].sort((a, b) => b.rating - a.rating).slice(0, 10);
+  const recommendedProducts = [...productsWithMeta].reverse().slice(0, 10);
 
   return (
     <>
@@ -509,34 +559,72 @@ function Home({
                 {/* 2. Best Sellers */}
                 {bestSellerProducts.length > 0 && (
                   <section className="homepage-section-block best-sellers-section">
-                    <div className="section-header-row">
+                    <div className="section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <h2>Trending & Best Sellers</h2>
+                      <button 
+                        onClick={() => navigate("/products")} 
+                        className="view-all-link"
+                        style={{ background: "none", border: "none", color: "#7c3aed", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}
+                      >
+                        View All →
+                      </button>
                     </div>
-                    <ProductList
-                      products={bestSellerProducts}
-                      onAdd={handleAddToCart}
-                      onRemove={handleRemoveFromCart}
-                      onToggleWishlist={handleToggleWishlist}
-                      showViewAll={true}
-                      title=""
-                    />
+                    <div className="trending-best-sellers-grid">
+                      {bestSellerProducts.map((product) => (
+                        <div 
+                          key={product.id} 
+                          className="trending-card" 
+                          onClick={() => navigate(`/product/${product.id}`)}
+                        >
+                          <div className="trending-card__img-wrapper">
+                            <img 
+                              src={product.image} 
+                              alt={product.name} 
+                              className="trending-card__img" 
+                            />
+                          </div>
+                          <div className="trending-card__content">
+                            <h3 className="trending-card__name">{product.name}</h3>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </section>
                 )}
 
                 {/* 3. Recommended for You */}
                 {recommendedProducts.length > 0 && (
                   <section className="homepage-section-block recommended-section">
-                    <div className="section-header-row">
+                    <div className="section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <h2>Recommended for You</h2>
+                      <button 
+                        onClick={() => navigate("/products")} 
+                        className="view-all-link"
+                        style={{ background: "none", border: "none", color: "#7c3aed", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}
+                      >
+                        View All →
+                      </button>
                     </div>
-                    <ProductList
-                      products={recommendedProducts}
-                      onAdd={handleAddToCart}
-                      onRemove={handleRemoveFromCart}
-                      onToggleWishlist={handleToggleWishlist}
-                      showViewAll={true}
-                      title=""
-                    />
+                    <div className="trending-best-sellers-grid">
+                      {recommendedProducts.map((product) => (
+                        <div 
+                          key={product.id} 
+                          className="trending-card" 
+                          onClick={() => navigate(`/product/${product.id}`)}
+                        >
+                          <div className="trending-card__img-wrapper">
+                            <img 
+                              src={product.image} 
+                              alt={product.name} 
+                              className="trending-card__img" 
+                            />
+                          </div>
+                          <div className="trending-card__content">
+                            <h3 className="trending-card__name">{product.name}</h3>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </section>
                 )}
               </div>

@@ -421,3 +421,120 @@
   .co-footer { flex-direction: column; gap: 10px; }
   .co-btn--place { width: 100%; }
 }
+
+/* ── inline address form ────────────────────── */
+.co-add-addr-btn {
+  background: none;
+  border: 1.5px dashed #6c63ff;
+  color: #6c63ff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: all 0.2s ease;
+  margin-top: 6px;
+}
+
+.co-add-addr-btn:hover {
+  background: #f7f5ff;
+  box-shadow: 0 4px 12px rgba(108, 99, 255, 0.08);
+}
+
+.co-add-addr-form {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: co-slide-up-form 0.2s ease;
+}
+
+@keyframes co-slide-up-form {
+  from { transform: translateY(15px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.co-form-title {
+  margin: 0 0 4px 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.co-form-error-msg {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.co-form-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.co-form-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  outline: none;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.co-form-row input:focus {
+  border-color: #6c63ff;
+}
+
+.co-form-row--three input {
+  width: 30%;
+}
+
+.co-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.co-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.co-btn--cancel {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.co-btn--cancel:hover {
+  background: #cbd5e1;
+}
+
+.co-btn--save {
+  background: #6c63ff;
+  color: white;
+}
+
+.co-btn--save:hover:not(:disabled) {
+  background: #5b52e5;
+}
+
+.co-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

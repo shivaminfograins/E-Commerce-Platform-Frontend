@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Box, Typography, Button, Grid, Card, CardContent, Divider, CircularProgress, Alert, Table, TableHead, TableRow, TableCell, TableBody, Snackbar } from "@mui/material";
+import { useState, useEffect } from "react";
+import { Box, Typography, Button, Grid, Card, CardContent, Divider, CircularProgress, Alert, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Snackbar } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import StatusDropdown from "../../components/Orders/StatusDropdown";
 import Timeline from "../../components/Orders/Timeline";
@@ -16,10 +16,6 @@ function OrderDetails() {
   // Toast notification
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
 
-  useEffect(() => {
-    fetchOrderDetail();
-  }, [id]);
-
   const fetchOrderDetail = async () => {
     setLoading(true);
     setError("");
@@ -27,11 +23,17 @@ function OrderDetails() {
       const response = await orderService.getOrderById(id);
       setOrder(response.data);
     } catch (err) {
+      console.error("fetchOrderDetail failed:", err);
       setError("Order details not found or failed to load.");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOrderDetail();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStatusUpdate = async (newStatus) => {
     if (!order) return;
@@ -40,6 +42,7 @@ function OrderDetails() {
       setOrder(response.data);
       showToast(`Order status updated to ${newStatus} successfully!`);
     } catch (err) {
+      console.error("handleStatusUpdate failed:", err);
       showToast("Failed to update order status.", "error");
     }
   };

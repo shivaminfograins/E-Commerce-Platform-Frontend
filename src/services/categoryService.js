@@ -7,6 +7,16 @@ const categoryService = {
     return response.data;
   },
 
+  getCategoryImages: async () => {
+    try {
+      const response = await api.get("/products/categories/images/");
+      return response.data;
+    } catch (err) {
+      console.warn("Failed to fetch category images, using defaults/fallback", err);
+      return [];
+    }
+  },
+
   getCategoryById: async (id) => {
     const response = await api.get(`/products/categories/${id}/`);
     return response.data;

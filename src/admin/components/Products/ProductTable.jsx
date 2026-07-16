@@ -1,11 +1,21 @@
-import React, { useState } from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel, IconButton, Box, Typography, Avatar, Paper } from "@mui/material";
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel, IconButton, Box, Paper } from "@mui/material";
 
-function ProductTable({ products = [], onEdit, onDelete }) {
+function ProductTable({ products = [], categories = [], brands = [], onEdit, onDelete }) {
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [orderBy, setOrderBy] = useState("name");
   const [order, setOrder] = useState("asc");
+
+  const getCategoryName = (categoryId) => {
+    const cat = categories.find((c) => c.id === categoryId);
+    return cat ? cat.name : `Category (ID: ${categoryId})`;
+  };
+
+  const getBrandName = (brandId) => {
+    const br = brands.find((b) => b.id === brandId);
+    return br ? br.name : "—";
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -39,17 +49,22 @@ function ProductTable({ products = [], onEdit, onDelete }) {
   };
 
   const descendingComparator = (a, b, orderBy) => {
-    if (b[orderBy] < a[orderBy]) return -1;
-    if (b[orderBy] > a[orderBy]) return 1;
-    return 0;
-  };
+    let aVal = a[orderBy];
+    let bVal = b[orderBy];
 
-  // Helper to compute display price (e.g. lowest variant price)
-  const getDisplayPrice = (product) => {
-    if (!product.variants || product.variants.length === 0) return "No price";
-    const prices = product.variants.map((v) => Number(v.price));
-    const minPrice = Math.min(...prices);
-    return `₹${minPrice.toLocaleString()}`;
+    if (orderBy === "category") {
+      aVal = getCategoryName(a.categoryId);
+      bVal = getCategoryName(b.categoryId);
+    }
+
+    if (orderBy === "brand") {
+      aVal = getBrandName(a.brand);
+      bVal = getBrandName(b.brand);
+    }
+
+    if (bVal < aVal) return -1;
+    if (bVal > aVal) return 1;
+    return 0;
   };
 
   const filteredSortedProducts = stableSort(products, getComparator(order, orderBy));
@@ -61,7 +76,15 @@ function ProductTable({ products = [], onEdit, onDelete }) {
         <Table sx={{ minWidth: 800 }}>
           <TableHead>
             <TableRow sx={{ "& th": { fontWeight: 700, color: "#475569", bgcolor: "#f8fafc" } }}>
-              <TableCell>Image</TableCell>
+              <TableCell key="id">
+                <TableSortLabel
+                  active={orderBy === "id"}
+                  direction={orderBy === "id" ? order : "asc"}
+                  onClick={() => handleRequestSort("id")}
+                >
+                  ID
+                </TableSortLabel>
+              </TableCell>
               <TableCell key="name">
                 <TableSortLabel
                   active={orderBy === "name"}
@@ -89,8 +112,6 @@ function ProductTable({ products = [], onEdit, onDelete }) {
                   Category
                 </TableSortLabel>
               </TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Variants</TableCell>
               <TableCell key="status">
                 <TableSortLabel
                   active={orderBy === "status"}
@@ -106,24 +127,14 @@ function ProductTable({ products = [], onEdit, onDelete }) {
           <TableBody>
             {paginatedProducts.map((product) => (
               <TableRow key={product.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                <TableCell>
-                  <Avatar
-                    src={product.image}
-                    variant="rounded"
-                    sx={{ width: 44, height: 44, bgcolor: "#f1f5f9", border: "1px solid rgba(15,23,42,0.05)" }}
-                  >
-                    📦
-                  </Avatar>
-                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>{product.id}</TableCell>
                 <TableCell sx={{ fontWeight: 700, color: "#1e293b" }}>{product.name}</TableCell>
-                <TableCell sx={{ fontWeight: 500, color: "#475569" }}>{product.brand || "—"}</TableCell>
+                <TableCell sx={{ fontWeight: 500, color: "#475569" }}>{getBrandName(product.brand)}</TableCell>
                 <TableCell>
                   <Box sx={{ display: "inline-block", px: 1.5, py: 0.5, borderRadius: "50px", fontSize: "0.8rem", bgcolor: "#f1f5f9", color: "#475569", fontWeight: 600 }}>
-                    {product.category}
+                    {getCategoryName(product.categoryId)}
                   </Box>
                 </TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{getDisplayPrice(product)}</TableCell>
-                <TableCell sx={{ fontWeight: 500 }}>{product.variants?.length || 0} variants</TableCell>
                 <TableCell>
                   <Box
                     sx={{

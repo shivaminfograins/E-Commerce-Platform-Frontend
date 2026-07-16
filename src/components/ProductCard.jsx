@@ -130,87 +130,82 @@ function ProductCard({
           </span>
         </div>
 
-        {/* Pricing */}
-        <div className="price-container">
-          <span className="price-current">₹{price.toLocaleString()}</span>
-          {originalPrice && (
-            <>
-              <span className="price-original">
-                ₹{originalPrice.toLocaleString()}
-              </span>
-              <span className="discount-badge">{discountPercent}% OFF</span>
-            </>
-          )}
-        </div>
+        <div className="price-action-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+          {/* Pricing */}
+          <div className="price-container" style={{ marginBottom: 0 }}>
+            <span className="price-current">₹{price.toLocaleString()}</span>
+            {originalPrice && (
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+                <span className="price-original">
+                  ₹{originalPrice.toLocaleString()}
+                </span>
+                <span className="discount-badge">{discountPercent}% OFF</span>
+              </div>
+            )}
+          </div>
 
-        {/* Action Button
-            Always navigates to the product detail page so the user can
-            choose a variant before the item is added to the cart.
-            The qty control branch is kept for future use-cases but is
-            effectively unreachable from listing pages in the current flow.
-        */}
-        <div className="card-actions">
-          {qty > 0 ? (
-            <div className="qty-control">
-              <button
-                className="qty-btn"
-                onClick={() => onRemove && onRemove(id)}
-              >
+          <div className="card-actions" style={{ marginTop: 0 }}>
+            {qty > 0 ? (
+              <div className="qty-control">
+                <button
+                  className="qty-btn"
+                  onClick={() => onRemove && onRemove(id)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+                <span className="qty-display">{qty}</span>
+                <button
+                  className="qty-btn qty-btn--add"
+                  onClick={() => onAdd && onAdd(id)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              /* Navigate to detail page — variant selection is required */
+              <Link to={`/product/${id}`} className="card-cart-btn" aria-label="Add to Cart">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="cart-icon"
+                  width="18"
+                  height="18"
                 >
-                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <circle cx="8" cy="21" r="1" />
+                  <circle cx="19" cy="21" r="1" />
+                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
                 </svg>
-              </button>
-              <span className="qty-display">{qty}</span>
-              <button
-                className="qty-btn qty-btn--add"
-                onClick={() => onAdd && onAdd(id)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-              </button>
-            </div>
-          ) : (
-            /* Navigate to detail page — variant selection is required */
-            <Link to={`/product/${id}`} className="btn btn--primary btn--add-to-cart">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="cart-icon"
-                width="16"
-                height="16"
-              >
-                <circle cx="8" cy="21" r="1" />
-                <circle cx="19" cy="21" r="1" />
-                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
-              </svg>
-              Add To Cart
-            </Link>
-          )}
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </div>

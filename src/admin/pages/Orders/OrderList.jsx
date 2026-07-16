@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Box, Typography, TextField, InputAdornment, Tabs, Tab, CircularProgress, Alert, TablePagination, Snackbar } from "@mui/material";
+import { useState, useEffect } from "react";
+import { Box, Typography, TextField, InputAdornment, Tabs, Tab, CircularProgress, Alert, TablePagination } from "@mui/material";
 import OrderTable from "../../components/Orders/OrderTable";
-import OrderDetailsDrawer from "../../components/Orders/OrderDetailsDrawer";
 import orderService from "../../services/orderService";
 
 const STATUS_TABS = ["All", "Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"];
@@ -16,19 +15,8 @@ function OrderList() {
 
   // Pagination states
   const [page, setPage] = useState(0); // MUI 0-based
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-
-  // Drawer state
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-
-  // Toast state
-  const [toast, setToast] = useState({ open: false, message: "", severity: "success" });
-
-  useEffect(() => {
-    fetchOrders();
-  }, [searchQuery, selectedStatusTab, page, rowsPerPage]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -43,49 +31,18 @@ function OrderList() {
       });
       setOrders(response.data);
       setTotalCount(response.pagination.total);
-
-      // If drawer is open, keep the selected order detail fresh
-      if (drawerOpen && selectedOrder) {
-        const freshOrder = response.data.find(o => o.id === selectedOrder.id);
-        if (freshOrder) {
-          setSelectedOrder(freshOrder);
-        }
-      }
     } catch (err) {
+      console.error("fetchOrders failed:", err);
       setError("Failed to load orders. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusUpdate = async (orderId, newStatus) => {
-    try {
-      const response = await orderService.updateOrderStatus(orderId, newStatus);
-      showToast(`Order status updated to ${newStatus} successfully!`);
-      
-      // Update local state
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? response.data : o))
-      );
-      
-      // Update selected drawer order
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder(response.data);
-      }
-    } catch (err) {
-      showToast("Failed to update status. Please try again.", "error");
-    }
-  };
-
-  const handleOpenDrawer = (order) => {
-    setSelectedOrder(order);
-    setDrawerOpen(true);
-  };
-
-  const handleCloseDrawer = () => {
-    setDrawerOpen(false);
-    setSelectedOrder(null);
-  };
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOrders();
+  }, [searchQuery, selectedStatusTab, page, rowsPerPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTabChange = (event, newValue) => {
     setSelectedStatusTab(newValue);
@@ -99,14 +56,6 @@ function OrderList() {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
-  };
-
-  const showToast = (message, severity = "success") => {
-    setToast({ open: true, message, severity });
-  };
-
-  const handleCloseToast = () => {
-    setToast((prev) => ({ ...prev, open: false }));
   };
 
   return (
@@ -190,7 +139,6 @@ function OrderList() {
         <>
           <OrderTable
             orders={orders}
-            onViewQuick={handleOpenDrawer}
           />
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
@@ -204,26 +152,6 @@ function OrderList() {
           />
         </>
       )}
-
-      {/* Slide out quick view drawer */}
-      <OrderDetailsDrawer
-        open={drawerOpen}
-        onClose={handleCloseDrawer}
-        order={selectedOrder}
-        onStatusUpdate={handleStatusUpdate}
-      />
-
-      {/* Notifications Toast */}
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={4000}
-        onClose={handleCloseToast}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      >
-        <Alert onClose={handleCloseToast} severity={toast.severity} sx={{ width: "100%", borderRadius: "10px" }}>
-          {toast.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

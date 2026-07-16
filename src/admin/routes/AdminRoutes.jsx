@@ -1,11 +1,14 @@
-import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AdminAuthProvider } from "../context/AdminAuthContext";
 import AdminLayout from "../layouts/AdminLayout";
 import Login from "../pages/Login/Login";
 import Dashboard from "../pages/Dashboard/Dashboard";
 import Categories from "../pages/Categories/Categories";
+import CategoryImages from "../pages/Categories/CategoryImages";
+import Brands from "../pages/Brands/Brands";
 import Products from "../pages/Products/Products";
+import ProductVariants from "../pages/Products/ProductVariants";
+import ProductImages from "../pages/Products/ProductImages";
 import CustomerList from "../pages/Customers/CustomerList";
 import CustomerDetailsPage from "../pages/Customers/CustomerDetailsPage";
 import OrderList from "../pages/Orders/OrderList";
@@ -24,7 +27,11 @@ function AdminRoutes() {
         <Route element={<AdminLayout />}>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="category-images" element={<CategoryImages />} />
+          <Route path="brands" element={<Brands />} />
           <Route path="products" element={<Products />} />
+          <Route path="product-variants" element={<ProductVariants />} />
+          <Route path="product-images" element={<ProductImages />} />
           <Route path="customers" element={<CustomerList />} />
           <Route path="customers/:id" element={<CustomerDetailsPage />} />
           <Route path="orders" element={<OrderList />} />

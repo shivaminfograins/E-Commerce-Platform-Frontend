@@ -142,6 +142,63 @@ function CheckoutModal({
   const [placedOrderInfo, setPlacedOrderInfo] = useState(null);
   const navigate = useNavigate();
 
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newAddr, setNewAddr] = useState({
+    full_name: "",
+    address_line_1: "",
+    address_line_2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    phone: "",
+    is_default: true,
+  });
+  const [savingAddr, setSavingAddr] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const handleSaveAddress = async () => {
+    if (
+      !newAddr.full_name.trim() ||
+      !newAddr.address_line_1.trim() ||
+      !newAddr.city.trim() ||
+      !newAddr.state.trim() ||
+      !newAddr.postal_code.trim() ||
+      !newAddr.phone.trim()
+    ) {
+      setFormError("Please fill out all required fields.");
+      return;
+    }
+
+    setSavingAddr(true);
+    setFormError("");
+    try {
+      const saved = await addressService.createAddress(newAddr);
+      const updatedList = await addressService.getAddresses();
+      setAddresses(updatedList);
+      if (saved && saved.id) {
+        setSelectedAddr(saved.id);
+      } else if (updatedList.length > 0) {
+        setSelectedAddr(updatedList[updatedList.length - 1].id);
+      }
+      setNewAddr({
+        full_name: "",
+        address_line_1: "",
+        address_line_2: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        phone: "",
+        is_default: true,
+      });
+      setShowAddForm(false);
+    } catch (err) {
+      console.error(err);
+      setFormError("Failed to save address. Please check your inputs.");
+    } finally {
+      setSavingAddr(false);
+    }
+  };
+
   // Fetch addresses dynamically from DB
   useEffect(() => {
     if (open && !user) {
@@ -172,6 +229,7 @@ function CheckoutModal({
   if (!open) return null;
 
   const handlePlaceOrder = async () => {
+    const selectedAddress = addresses.find((a) => a.id === selectedAddr);
     if (!user) {
       window.alert("Please log in to proceed to checkout.");
       navigate("/login", { state: { from: "/cart" } });
@@ -436,6 +494,98 @@ function CheckoutModal({
                     ))
                   )}
                 </div>
+
+                {!showAddForm ? (
+                  <button
+                    type="button"
+                    className="co-add-addr-btn"
+                    onClick={() => {
+                      setShowAddForm(true);
+                      setFormError("");
+                    }}
+                  >
+                    + Add New Address
+                  </button>
+                ) : (
+                  <div className="co-add-addr-form">
+                    <h4 className="co-form-title">Add New Delivery Address</h4>
+                    {formError && <p className="co-form-error-msg">⚠️ {formError}</p>}
+                    <div className="co-form-row">
+                      <input
+                        type="text"
+                        placeholder="Full Name"
+                        value={newAddr.full_name}
+                        onChange={(e) => setNewAddr({ ...newAddr, full_name: e.target.value })}
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Phone Number"
+                        value={newAddr.phone}
+                        onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="co-form-row">
+                      <input
+                        type="text"
+                        placeholder="Address Line 1"
+                        value={newAddr.address_line_1}
+                        onChange={(e) => setNewAddr({ ...newAddr, address_line_1: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="co-form-row">
+                      <input
+                        type="text"
+                        placeholder="Address Line 2 (Optional)"
+                        value={newAddr.address_line_2}
+                        onChange={(e) => setNewAddr({ ...newAddr, address_line_2: e.target.value })}
+                      />
+                    </div>
+                    <div className="co-form-row co-form-row--three">
+                      <input
+                        type="text"
+                        placeholder="City"
+                        value={newAddr.city}
+                        onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="State"
+                        value={newAddr.state}
+                        onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })}
+                        required
+                      />
+                      <input
+                        type="text"
+                        placeholder="Pincode"
+                        value={newAddr.postal_code}
+                        onChange={(e) => setNewAddr({ ...newAddr, postal_code: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="co-form-actions">
+                      <button
+                        type="button"
+                        className="co-btn co-btn--cancel"
+                        onClick={() => setShowAddForm(false)}
+                        disabled={savingAddr}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        className="co-btn co-btn--save"
+                        onClick={handleSaveAddress}
+                        disabled={savingAddr}
+                      >
+                        {savingAddr ? "Saving..." : "Save Address"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* ─ Delivery Info ─ */}

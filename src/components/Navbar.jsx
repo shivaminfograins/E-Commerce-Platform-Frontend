@@ -72,7 +72,6 @@ function Navbar({ cartCount, wishlistCount = 0, search, setSearch, onCartClick, 
               }, 200);
             }}
           />
-          <span className="search-shortcut">⌘K</span>
 
           {showSuggestions && suggestions.length > 0 && (
             <div className="search-suggestions-dropdown">
@@ -105,8 +104,8 @@ function Navbar({ cartCount, wishlistCount = 0, search, setSearch, onCartClick, 
           <Link to="/categories">Categories</Link>
           {user ? (
             <div className="user-dropdown-container">
-              <button 
-                className="user-profile-trigger" 
+              <button
+                className="user-profile-trigger"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 style={{ display: "flex", alignItems: "center", gap: "8px", background: "none", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "8px 16px", fontSize: "14px", fontWeight: "600", color: "#334155", cursor: "pointer" }}
               >
@@ -165,24 +164,22 @@ function Navbar({ cartCount, wishlistCount = 0, search, setSearch, onCartClick, 
           )}
         </nav>
 
-        <button className="cart-btn" onClick={onWishlistClick} aria-label="Open Wishlist" style={{ marginRight: "10px" }}>
-          <div className="cart-btn-content">
+        <button className="wishlist-icon-btn" onClick={onWishlistClick} aria-label="Open Wishlist" style={{ marginRight: "10px" }}>
+          <div className="cart-btn-content" style={{ gap: 0 }}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
-            <span className="cart-btn-text">Wishlist</span>
-            {wishlistCount > 0 && <span className="cart-badge" style={{ backgroundColor: "#ef4444" }}>{wishlistCount}</span>}
+            {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
           </div>
         </button>
 
-        <button className="cart-btn" onClick={onCartClick} aria-label="Open Cart">
-          <div className="cart-btn-content">
+        <button className="cart-icon-btn" onClick={onCartClick} aria-label="Open Cart">
+          <div className="cart-btn-content" style={{ gap: 0 }}>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="9" cy="21" r="1"></circle>
               <circle cx="20" cy="21" r="1"></circle>
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
             </svg>
-            <span className="cart-btn-text">Cart</span>
             {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
           </div>
         </button>
@@ -260,8 +257,8 @@ function Navbar({ cartCount, wishlistCount = 0, search, setSearch, onCartClick, 
                 </svg>
                 Address Book
               </Link>
-              <button 
-                className="dropdown-item logout-btn" 
+              <button
+                className="dropdown-item logout-btn"
                 onClick={() => { setUser(null); setIsMobileMenuOpen(false); }}
                 style={{ width: "100%", justifyContent: "flex-start", fontSize: "15px", padding: "10px 12px" }}
               >

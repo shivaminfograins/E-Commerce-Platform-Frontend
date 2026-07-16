@@ -25,7 +25,7 @@ const getStatusColor = (status) => {
   }
 };
 
-const OrderTable = React.memo(function OrderTable({ orders = [], onViewQuick }) {
+const OrderTable = React.memo(function OrderTable({ orders = [] }) {
   const navigate = useNavigate();
 
   return (
@@ -95,25 +95,9 @@ const OrderTable = React.memo(function OrderTable({ orders = [], onViewQuick }) 
                   </TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                      <Tooltip title="Quick View Drawer">
-                        <IconButton
-                          onClick={() => onViewQuick(order)}
-                          sx={{
-                            color: "#7c3aed",
-                            p: 1,
-                            bgcolor: "rgba(124, 58, 237, 0.05)",
-                            "&:hover": { bgcolor: "rgba(124, 58, 237, 0.1)" }
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
-                          </svg>
-                        </IconButton>
-                      </Tooltip>
                       <Tooltip title="View Full Details">
                         <IconButton
-                          onClick={() => navigate(`/admin/orders/${order.id}`)}
+                          onClick={() => navigate(`/admin/orders/${order.dbId || order.id}`)}
                           sx={{
                             color: "#3b82f6",
                             p: 1,

@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 function ProductGallery({ product }) {
   const [activeIdx, setActiveIdx] = useState(0);
+  const [showMagnifier, setShowMagnifier] = useState(false);
+  const [magPos, setMagPos] = useState({ x: 0, y: 0, xPct: 50, yPct: 50 });
+  const containerRef = useRef(null);
 
   // Simulated viewpoints by cropping and transforming the primary image
   const views = [
@@ -30,12 +33,49 @@ function ProductGallery({ product }) {
           </svg>
         </button>
 
-        <div className={`gallery-image-viewport ${views[activeIdx].class}`}>
-          <img 
-            src={product.image} 
-            alt={`${product.name} - ${views[activeIdx].label}`} 
-            className="gallery-main-img" 
+        <div
+          ref={containerRef}
+          className={`gallery-image-viewport ${views[activeIdx].class}`}
+          onMouseEnter={() => setShowMagnifier(true)}
+          onMouseLeave={() => setShowMagnifier(false)}
+          onMouseMove={(e) => {
+            const el = containerRef.current;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const xPct = (x / rect.width) * 100;
+            const yPct = (y / rect.height) * 100;
+            setMagPos({ x, y, xPct, yPct });
+          }}
+        >
+          <img
+            src={product.image}
+            alt={`${product.name} - ${views[activeIdx].label}`}
+            className="gallery-main-img"
           />
+
+          {showMagnifier && (
+            <div
+              className="image-magnifier"
+              style={{
+                position: "absolute",
+                pointerEvents: "none",
+                width: 180,
+                height: 180,
+                borderRadius: 8,
+                border: "1px solid rgba(0,0,0,0.08)",
+                boxShadow: "0 6px 18px rgba(2,6,23,0.08)",
+                left: Math.max(8, magPos.x - 90),
+                top: Math.max(8, magPos.y - 90),
+                backgroundImage: `url(${product.image})`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: `${magPos.xPct}% ${magPos.yPct}%`,
+                backgroundSize: "200%",
+                zIndex: 60,
+              }}
+            />
+          )}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -8,6 +8,7 @@ import ProductSort from "../components/ProductSort";
 import ProductList from "../components/ProductList";
 import { useCategories } from "../hooks/useCategories";
 import { useProducts } from "../hooks/useProducts";
+import brandService from "../admin/services/brandService";
 
 function Products({
   cart = {},
@@ -18,18 +19,51 @@ function Products({
   setUser,
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState({
+    id: 0,
+    name: "All",
+  });
+  const [brands, setBrands] = useState([]);
+  const [selectedBrand, setSelectedBrand] = useState({
     id: 0,
     name: "All",
   });
   const [sortBy, setSortBy] = useState("latest");
   const [priceRange, setPriceRange] = useState("All");
   const [page, setPage] = useState(1);
+  const [accumulatedProducts, setAccumulatedProducts] = useState([]);
 
-  const { categories: apiCategories, loading: loadingCategories } =
-    useCategories();
+  const { categories: apiCategories } = useCategories();
   const categories = [{ id: 0, name: "All" }, ...apiCategories];
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const data = await brandService.getBrands();
+        setBrands([
+          { id: 0, name: "All" },
+          ...data.filter((b) => b.status === "Active"),
+        ]);
+      } catch (err) {
+        console.error("Failed to fetch brands", err);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.selectedBrandId && brands.length > 0) {
+      const match = brands.find((b) => b.id === location.state.selectedBrandId);
+      if (match) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSelectedBrand(match);
+      }
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, brands, navigate, location.pathname]);
+
   const {
     products,
     totalCount,
@@ -37,28 +71,45 @@ function Products({
     previous,
     loading: loadingProducts,
     error: productError,
-  } = useProducts(selectedCategory.id, page);
+  } = useProducts(selectedCategory.id, selectedBrand.id, page, priceRange);
 
-  const filteredProducts = products.filter((product) => {
+  // Sync loaded products with the accumulated list
+  useEffect(() => {
+    if (page === 1) {
+      setAccumulatedProducts(products);
+    } else {
+      setAccumulatedProducts((prev) => {
+        const existingIds = new Set(prev.map((p) => p.id));
+        const newItems = products.filter((p) => !existingIds.has(p.id));
+        return [...prev, ...newItems];
+      });
+    }
+  }, [products, page]);
+
+  // Reset page to 1 whenever any filters change
+  useEffect(() => {
+    setPage(1);
+    setAccumulatedProducts([]);
+  }, [selectedCategory, selectedBrand, priceRange, search]);
+
+  const filteredProducts = accumulatedProducts.filter((product) => {
     const searchMatch = product.name
       .toLowerCase()
       .includes(search.toLowerCase());
     let priceMatch = true;
+    const minPrice = product.minPrice ?? product.price;
+    const maxPrice = product.maxPrice ?? product.price;
 
     if (priceRange === "under10k") {
-      priceMatch = product.price < 10000;
+      priceMatch = minPrice < 10000;
     } else if (priceRange === "10kto50k") {
-      priceMatch = product.price >= 10000 && product.price <= 50000;
+      priceMatch = maxPrice >= 10000 && minPrice <= 50000;
     } else if (priceRange === "above50k") {
-      priceMatch = product.price > 50000;
+      priceMatch = maxPrice > 50000;
     }
 
     return searchMatch && priceMatch;
   });
-
-  useEffect(() => {
-    setPage(1);
-  }, [selectedCategory]);
 
   if (sortBy === "low") {
     filteredProducts.sort((a, b) => a.price - b.price);
@@ -91,7 +142,11 @@ function Products({
 
   const handleToggleWishlist = (productId) => {
     if (!user) {
-      if (window.confirm("You need to be logged in to add products to your wishlist. Would you like to log in now?")) {
+      if (
+        window.confirm(
+          "You need to be logged in to add products to your wishlist. Would you like to log in now?",
+        )
+      ) {
         navigate("/login");
       }
       return;
@@ -130,12 +185,15 @@ function Products({
             setSelectedCategory={setSelectedCategory}
             priceRange={priceRange}
             setPriceRange={setPriceRange}
+            brands={brands}
+            selectedBrand={selectedBrand}
+            setSelectedBrand={setSelectedBrand}
           />
 
           <div className="products-content">
             <ProductSort sortBy={sortBy} setSortBy={setSortBy} />
 
-            {loadingProducts && (
+            {loadingProducts && productsWithMeta.length === 0 && (
               <p className="section-message">Loading products...</p>
             )}
             {productError && (
@@ -143,36 +201,41 @@ function Products({
                 {productError}
               </p>
             )}
-            {!loadingProducts && !productError && (
+            {!productError && (
               <>
-                <ProductList
-                  products={productsWithMeta}
-                  onAdd={handleAddToCart}
-                  onRemove={handleRemoveFromCart}
-                  onToggleWishlist={handleToggleWishlist}
-                />
+                {productsWithMeta.length === 0 && !loadingProducts && (
+                  <p className="section-message">No products found.</p>
+                )}
 
-                <div className="pagination-controls">
-                  <button
-                    type="button"
-                    disabled={!previous}
-                    onClick={() =>
-                      setPage((prevPage) => Math.max(prevPage - 1, 1))
-                    }
-                  >
-                    Previous
-                  </button>
-                  <span>
-                    Page {page} of {Math.max(1, Math.ceil(totalCount / 10))}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={!next}
-                    onClick={() => setPage((prevPage) => prevPage + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
+                {productsWithMeta.length > 0 && (
+                  <ProductList
+                    products={productsWithMeta}
+                    onAdd={handleAddToCart}
+                    onRemove={handleRemoveFromCart}
+                    onToggleWishlist={handleToggleWishlist}
+                  />
+                )}
+
+                {priceRange === "All" &&
+                  productsWithMeta.length < totalCount && (
+                    <div className="load-more-container">
+                      <button
+                        type="button"
+                        className="btn-load-more"
+                        onClick={() => setPage((prevPage) => prevPage + 1)}
+                        disabled={loadingProducts}
+                      >
+                        {loadingProducts ? (
+                          <span className="load-more-spinner-wrapper">
+                            <span className="load-more-spinner"></span>
+                            Loading...
+                          </span>
+                        ) : (
+                          "Load More Products"
+                        )}
+                      </button>
+                    </div>
+                  )}
               </>
             )}
           </div>

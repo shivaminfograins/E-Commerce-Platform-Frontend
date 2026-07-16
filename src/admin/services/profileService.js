@@ -1,41 +1,41 @@
-const PROFILE_STORAGE_KEY = "shopease_admin_profile";
-
-const getMockProfile = () => {
-  const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
-  if (saved) return JSON.parse(saved);
-
-  const initial = {
-    name: "Admin User",
-    email: "admin@shopease.com",
-    phone: "+91 9876543210",
-    avatar: "",
-    role: "Super Admin",
-    joinedDate: "2025-01-01"
-  };
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(initial));
-  return initial;
-};
-
-const saveMockProfile = (profile) => {
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-};
-
-const sleep = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms));
+import api from "../../api/axios";
 
 const profileService = {
   getProfile: async () => {
-    await sleep();
-    return { data: getMockProfile() };
+    const response = await api.get("/admin/profile/");
+    const p = response.data;
+    return {
+      data: {
+        name: p.username || "",
+        email: p.email || "",
+        phone: p.profile_details?.phone || p.phone || "",
+        avatar: p.profile_details?.avatar || p.avatar || "",
+        role: p.role || "Super Admin",
+        joinedDate: p.created_at || "2025-01-01"
+      }
+    };
   },
 
   updateProfile: async (data) => {
-    await sleep();
-    const profile = getMockProfile();
-    const updated = { ...profile, ...data };
-    saveMockProfile(updated);
-    return { data: updated };
+    const payload = {
+      username: data.name,
+      email: data.email,
+      phone: data.phone,
+      date_of_birth: "1990-01-01" // Default required fallback
+    };
+    const response = await api.put("/admin/profile/", payload);
+    const p = response.data;
+    return {
+      data: {
+        name: p.username || "",
+        email: p.email || "",
+        phone: p.profile_details?.phone || p.phone || "",
+        avatar: p.profile_details?.avatar || p.avatar || "",
+        role: p.role || "Super Admin",
+        joinedDate: p.created_at || "2025-01-01"
+      }
+    };
   }
 };
 
 export default profileService;
-export { getMockProfile };

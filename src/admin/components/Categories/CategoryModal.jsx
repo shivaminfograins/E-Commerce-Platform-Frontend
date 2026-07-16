@@ -25,6 +25,7 @@ function CategoryModal({ open, onClose, onSubmit, initialValues, loading }) {
       <DialogContent>
         <Box sx={{ pt: 1 }}>
           <CategoryForm
+            key={initialValues?.id || "new"}
             initialValues={initialValues}
             onSubmit={onSubmit}
             onCancel={onClose}

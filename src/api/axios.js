@@ -12,14 +12,45 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   try {
-    const storedUser = localStorage.getItem("shopease_user");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      const token = parsedUser?.accessToken || parsedUser?.token;
+    const url = config.url || "";
 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    // For admin API routes always prefer the admin token to avoid 403s.
+    const isAdminRoute = url.startsWith("/admin/") || url.includes("/admin/");
+
+    let token = null;
+
+    if (isAdminRoute) {
+      // Try admin token first, fall back to generic user token
+      const adminStored = localStorage.getItem("shopease_admin_user");
+      if (adminStored) {
+        const parsed = JSON.parse(adminStored);
+        token = parsed?.accessToken || parsed?.token;
       }
+      if (!token) {
+        const userStored = localStorage.getItem("shopease_user");
+        if (userStored) {
+          const parsed = JSON.parse(userStored);
+          token = parsed?.accessToken || parsed?.token;
+        }
+      }
+    } else {
+      // For non-admin routes prefer the regular user token, fall back to admin
+      const userStored = localStorage.getItem("shopease_user");
+      if (userStored) {
+        const parsed = JSON.parse(userStored);
+        token = parsed?.accessToken || parsed?.token;
+      }
+      if (!token) {
+        const adminStored = localStorage.getItem("shopease_admin_user");
+        if (adminStored) {
+          const parsed = JSON.parse(adminStored);
+          token = parsed?.accessToken || parsed?.token;
+        }
+      }
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     const guestId = localStorage.getItem("guest_id");
@@ -32,6 +63,7 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
 
 // Clear stale auth tokens if the backend rejects them.
 api.interceptors.response.use(

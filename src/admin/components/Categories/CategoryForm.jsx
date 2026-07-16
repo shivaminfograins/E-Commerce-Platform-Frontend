@@ -1,24 +1,11 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { Box, TextField, Button, MenuItem } from "@mui/material";
 
 function CategoryForm({ initialValues, onSubmit, onCancel, loading }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("Active");
+  const [name, setName] = useState(initialValues?.name || "");
+  const [description, setDescription] = useState(initialValues?.description || "");
+  const [status, setStatus] = useState(initialValues?.status || "Active");
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (initialValues) {
-      setName(initialValues.name || "");
-      setDescription(initialValues.description || "");
-      setStatus(initialValues.status || "Active");
-    } else {
-      setName("");
-      setDescription("");
-      setStatus("Active");
-    }
-    setError("");
-  }, [initialValues]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

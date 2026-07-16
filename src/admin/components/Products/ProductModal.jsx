@@ -1,8 +1,7 @@
-import React from "react";
 import { Dialog, DialogTitle, DialogContent, Box, IconButton } from "@mui/material";
 import ProductForm from "./ProductForm";
 
-function ProductModal({ open, onClose, onSubmit, initialValues, categories = [], loading }) {
+function ProductModal({ open, onClose, onSubmit, initialValues, categories = [], brands = [], loading }) {
   return (
     <Dialog
       open={open}
@@ -29,6 +28,7 @@ function ProductModal({ open, onClose, onSubmit, initialValues, categories = [],
             onSubmit={onSubmit}
             onCancel={onClose}
             categories={categories}
+            brands={brands}
             loading={loading}
           />
         </Box>

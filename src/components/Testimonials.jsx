@@ -7,7 +7,7 @@ const TESTIMONIALS = [
     role: "Verified Buyer",
     rating: 5,
     comment: "The delivery was exceptionally fast, and the packaging was premium. The laptop is working perfectly. Best support team!",
-    avatar: "👩‍💼"
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80"
   },
   {
     id: 2,
@@ -15,7 +15,7 @@ const TESTIMONIALS = [
     role: "Tech Enthusiast",
     rating: 5,
     comment: "Absolutely genuine product. I was worried about purchasing a smartphone online, but the experience was flawless.",
-    avatar: "👨‍💻"
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80"
   },
   {
     id: 3,
@@ -23,7 +23,7 @@ const TESTIMONIALS = [
     role: "Regular Customer",
     rating: 4,
     comment: "Great customer service. I had a slight issue with my address, but they fixed it in minutes. Highly recommend ShopEase!",
-    avatar: "👩"
+    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80"
   }
 ];
 
@@ -40,7 +40,9 @@ function Testimonials() {
         {TESTIMONIALS.map((t) => (
           <div key={t.id} className="testimonial-card">
             <div className="testimonial-header">
-              <div className="testimonial-avatar">{t.avatar}</div>
+              <div className="testimonial-avatar">
+                <img src={t.avatar} alt={t.name} />
+              </div>
               <div className="testimonial-meta">
                 <h4>{t.name}</h4>
                 <span>{t.role}</span>
