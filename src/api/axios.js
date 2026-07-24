@@ -65,18 +65,88 @@ api.interceptors.request.use((config) => {
 });
 
 
-// Clear stale auth tokens if the backend rejects them.
+// Keep track of refreshing state
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+// Intercept responses to handle token expiration (401) and attempt refresh
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
     const status = error?.response?.status;
-    const url = error?.config?.url || "";
-    // If a token-refresh call fails, the stored tokens are invalid — clear them.
-    if (status === 401 || (status === 500 && url.includes("token/refresh"))) {
-      console.warn("Auth token invalid or expired — clearing local session.");
-      localStorage.removeItem("shopease_user");
-      // Do NOT redirect here; let individual components handle missing user state.
+    const url = originalRequest?.url || "";
+
+    // If 401 and not already retried and not a token refresh request itself
+    if (status === 401 && !originalRequest._retry && !url.includes("token/refresh")) {
+      originalRequest._retry = true;
+
+      const isAdminRoute = url.startsWith("/admin/") || url.includes("/admin/");
+      const storageKey = isAdminRoute ? "shopease_admin_user" : "shopease_user";
+      const storedUser = localStorage.getItem(storageKey);
+
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          const refreshToken = parsed?.refreshToken || parsed?.user?.refreshToken;
+
+          if (refreshToken) {
+            if (isRefreshing) {
+              return new Promise((resolve, reject) => {
+                failedQueue.push({ resolve, reject });
+              })
+                .then((token) => {
+                  originalRequest.headers.Authorization = `Bearer ${token}`;
+                  return api(originalRequest);
+                })
+                .catch((err) => Promise.reject(err));
+            }
+
+            isRefreshing = true;
+
+            // Make a direct axios request to avoid interceptors loop
+            const refreshUrl = (import.meta.env.VITE_API_BASE_URL || "/api") + "/auth/token/refresh/";
+            const refreshRes = await axios.post(refreshUrl, { refresh: refreshToken });
+
+            const newAccessToken = refreshRes.data.access;
+
+            // Update stored tokens
+            parsed.accessToken = newAccessToken;
+            parsed.token = newAccessToken;
+            if (parsed.user) {
+              parsed.user.accessToken = newAccessToken;
+              parsed.user.token = newAccessToken;
+            }
+            localStorage.setItem(storageKey, JSON.stringify(parsed));
+
+            isRefreshing = false;
+            processQueue(null, newAccessToken);
+
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          isRefreshing = false;
+          processQueue(refreshError, null);
+          console.warn("Auth token invalid or expired — clearing local session for key:", storageKey);
+          localStorage.removeItem(storageKey);
+        }
+      } else {
+        localStorage.removeItem(storageKey);
+      }
     }
+
     return Promise.reject(error);
   }
 );

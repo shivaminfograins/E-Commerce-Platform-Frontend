@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Typography, Box, CircularProgress, Alert } from "@mui/material";
+import { Grid, Typography, Box, CircularProgress, Alert, FormControl, Select, MenuItem, TextField } from "@mui/material";
 import StatCard from "../../components/Dashboard/StatCard";
 import SalesChart from "../../components/Reports/SalesChart";
 import RevenueChart from "../../components/Reports/RevenueChart";
@@ -16,15 +16,21 @@ function Reports() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [timeRange, setTimeRange] = useState("yearly");
+  const [particularDate, setParticularDate] = useState(new Date().toISOString().split("T")[0]);
 
   useEffect(() => {
     fetchReportData();
-  }, []);
+  }, [timeRange, particularDate]);
 
   const fetchReportData = async () => {
     setLoading(true);
     setError("");
     try {
+      const params = { range: timeRange };
+      if (timeRange === "custom") {
+        params.date = particularDate;
+      }
       const [
         metricsRes,
         revenueRes,
@@ -32,9 +38,9 @@ function Reports() {
         productsRes,
         categoriesRes
       ] = await Promise.all([
-        reportService.getSummaryMetrics(),
-        reportService.getRevenueData(),
-        reportService.getSalesData(),
+        reportService.getSummaryMetrics(params),
+        reportService.getRevenueData(params),
+        reportService.getSalesData(params),
         reportService.getTopProducts(),
         reportService.getTopCategories()
       ]);
@@ -127,6 +133,40 @@ function Reports() {
           />
         </Grid>
       </Grid>
+
+      {/* Filter Controls */}
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center", mb: 3, justifyContent: "flex-end" }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mr: 1, fontWeight: 500 }}>
+          Filter Trends:
+        </Typography>
+        <FormControl size="small" sx={{ minWidth: 160 }}>
+          <Select
+            value={timeRange}
+            onChange={(e) => setTimeRange(e.target.value)}
+            displayEmpty
+            sx={{ borderRadius: "8px", bgcolor: "background.paper", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
+          >
+            <MenuItem value="yearly">Yearly Trend</MenuItem>
+            <MenuItem value="monthly">Monthly Trend</MenuItem>
+            <MenuItem value="weekly">Weekly Trend</MenuItem>
+            <MenuItem value="custom">Particular Day</MenuItem>
+          </Select>
+        </FormControl>
+        {timeRange === "custom" && (
+          <TextField
+            type="date"
+            size="small"
+            value={particularDate}
+            onChange={(e) => setParticularDate(e.target.value)}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "8px",
+                bgcolor: "background.paper"
+              }
+            }}
+          />
+        )}
+      </Box>
 
       {/* Primary Graphs Grid */}
       <Grid container spacing={3} sx={{ mb: 4 }}>

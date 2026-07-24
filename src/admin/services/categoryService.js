@@ -59,6 +59,8 @@ const categoryService = {
           description: cat.description || "",
           status: cat.is_active !== false ? "Active" : "Inactive",
           count: cat.count || (cat.products ? cat.products.length : 0),
+          image: cat.image || "",
+          alt_text: cat.alt_text || "",
           images: cat.images || []
         }));
       }
@@ -71,6 +73,8 @@ const categoryService = {
           description: cat.description || "",
           status: cat.is_active !== false ? "Active" : "Inactive",
           count: cat.count || (cat.products ? cat.products.length : 0),
+          image: cat.image || "",
+          alt_text: cat.alt_text || "",
           images: cat.images || []
         }));
       }
@@ -78,22 +82,43 @@ const categoryService = {
       throw new Error("Invalid response format");
     } catch (err) {
       console.warn("Backend categories unavailable, falling back to mock database:", err);
-      return getMockCategories();
+      const categories = getMockCategories();
+      const images = getMockCategoryImages();
+      return categories.map(cat => {
+        const imgObj = images.find(img => img.category === cat.id);
+        return {
+          ...cat,
+          image: cat.image || (imgObj ? imgObj.image : ""),
+          alt_text: cat.alt_text || (imgObj ? imgObj.alt_text : ""),
+          images: cat.images || (imgObj ? [imgObj] : [])
+        };
+      });
     }
   },
 
   createCategory: async (categoryData) => {
     try {
-      const response = await api.post("/products/categories/", {
-        name: categoryData.name,
-        description: categoryData.description || "",
-        is_active: categoryData.status === "Active"
+      const formData = new FormData();
+      formData.append("name", categoryData.name);
+      formData.append("description", categoryData.description || "");
+      formData.append("is_active", categoryData.status === "Active");
+      formData.append("alt_text", categoryData.alt_text || "");
+      if (categoryData.image instanceof File) {
+        formData.append("image", categoryData.image);
+      }
+      
+      const response = await api.post("/products/categories/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
       });
       return {
         id: response.data.id,
         name: response.data.name,
         description: response.data.description || "",
         status: response.data.is_active !== false ? "Active" : "Inactive",
+        image: response.data.image || "",
+        alt_text: response.data.alt_text || "",
         count: 0,
         images: []
       };
@@ -105,6 +130,8 @@ const categoryService = {
         name: categoryData.name,
         description: categoryData.description || "",
         status: categoryData.status || "Active",
+        image: categoryData.image ? (categoryData.image instanceof File ? URL.createObjectURL(categoryData.image) : categoryData.image) : "",
+        alt_text: categoryData.alt_text || "",
         count: 0,
         images: []
       };
@@ -116,16 +143,30 @@ const categoryService = {
 
   updateCategory: async (id, categoryData) => {
     try {
-      const response = await api.put(`/products/categories/${id}/`, {
-        name: categoryData.name,
-        description: categoryData.description || "",
-        is_active: categoryData.status === "Active"
+      const formData = new FormData();
+      formData.append("name", categoryData.name);
+      formData.append("description", categoryData.description || "");
+      formData.append("is_active", categoryData.status === "Active");
+      formData.append("alt_text", categoryData.alt_text || "");
+      if (categoryData.image instanceof File) {
+        formData.append("image", categoryData.image);
+      } else if (categoryData.image === null) {
+        // Handle image clearing if needed
+        formData.append("image", "");
+      }
+      
+      const response = await api.patch(`/products/categories/${id}/`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
       });
       return {
         id: response.data.id,
         name: response.data.name,
         description: response.data.description || "",
         status: response.data.is_active !== false ? "Active" : "Inactive",
+        image: response.data.image || "",
+        alt_text: response.data.alt_text || "",
         count: response.data.count || 0,
         images: response.data.images || []
       };
@@ -138,7 +179,9 @@ const categoryService = {
           ...categories[idx],
           name: categoryData.name,
           description: categoryData.description || "",
-          status: categoryData.status || "Active"
+          status: categoryData.status || "Active",
+          image: categoryData.image ? (categoryData.image instanceof File ? URL.createObjectURL(categoryData.image) : categoryData.image) : categories[idx].image,
+          alt_text: categoryData.alt_text || ""
         };
         saveMockCategories(categories);
         return categories[idx];

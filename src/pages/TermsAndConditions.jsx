@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Breadcrumbs from "../components/Breadcrumbs";
 import CartModal from "../components/CartModal";
 import { LegalSidebar } from "../components/LegalSidebar";
 
@@ -37,6 +38,8 @@ function TermsAndConditions({
         user={user}
         setUser={setUser}
       />
+
+      <Breadcrumbs />
 
       <main className="container legal-page-container">
         <div className="legal-header">

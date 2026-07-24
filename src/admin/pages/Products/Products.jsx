@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, Button, TextField, InputAdornment, Alert, Snackbar, CircularProgress, MenuItem, Paper } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { Box, Typography, Button, TextField, InputAdornment, Alert, Snackbar, CircularProgress, MenuItem, Paper, Drawer, IconButton } from "@mui/material";
 import ProductTable from "../../components/Products/ProductTable";
-import ProductModal from "../../components/Products/ProductModal";
 import DeleteDialog from "../../components/Products/DeleteDialog";
 import productService from "../../services/productService";
 import categoryService from "../../services/categoryService";
 import brandService from "../../services/brandService";
+import ProductFormContainer from "./ProductFormContainer";
 
 function Products() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -19,7 +21,7 @@ function Products() {
   const [error, setError] = useState("");
 
   // CRUD States
-  const [modalOpen, setModalOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -52,40 +54,16 @@ function Products() {
   }, []);
 
   const handleOpenAddModal = () => {
-    setSelectedProduct(null);
-    setModalOpen(true);
+    navigate("/admin/products/create");
   };
 
   const handleOpenEditModal = (product) => {
-    setSelectedProduct(product);
-    setModalOpen(true);
+    navigate(`/admin/products/${product.id}/edit`);
   };
 
   const handleOpenDeleteDialog = (product) => {
     setSelectedProduct(product);
     setDeleteOpen(true);
-  };
-
-  const handleModalSubmit = async (formData) => {
-    setActionLoading(true);
-    try {
-      if (selectedProduct) {
-        // Edit Mode
-        const updated = await productService.updateProduct(selectedProduct.id, formData);
-        setProducts((prev) => prev.map((p) => (p.id === selectedProduct.id ? updated : p)));
-        showToast("Product updated successfully!");
-      } else {
-        // Add Mode
-        const created = await productService.createProduct(formData);
-        setProducts((prev) => [...prev, created]);
-        showToast("Product created successfully!");
-      }
-      setModalOpen(false);
-    } catch {
-      showToast("Operation failed. Please check inputs and try again.", "error");
-    } finally {
-      setActionLoading(false);
-    }
   };
 
   const handleDeleteConfirm = async () => {
@@ -114,10 +92,10 @@ function Products() {
   // Filter products based on search, category & brand selection
   const filteredProducts = products.filter((product) => {
     const matchesCategory =
-      selectedCategoryFilter === "All" || product.category === selectedCategoryFilter;
+      selectedCategoryFilter === "All" || product.categoryId === Number(selectedCategoryFilter);
 
     const matchesBrand =
-      selectedBrandFilter === "All" || product.brand === selectedBrandFilter;
+      selectedBrandFilter === "All" || product.brand === Number(selectedBrandFilter);
 
     const brandObj = brands.find((b) => b.id === product.brand);
     const brandName = brandObj ? brandObj.name : "";
@@ -189,7 +167,7 @@ function Products() {
         >
           <MenuItem value="All">All Categories</MenuItem>
           {categories.map((c) => (
-            <MenuItem key={c.id} value={c.name}>
+            <MenuItem key={c.id} value={c.id}>
               {c.name}
             </MenuItem>
           ))}
@@ -241,16 +219,7 @@ function Products() {
         />
       )}
 
-      {/* Dialog overlays */}
-      <ProductModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={handleModalSubmit}
-        initialValues={selectedProduct}
-        categories={categories}
-        brands={brands}
-        loading={actionLoading}
-      />
+
 
       <DeleteDialog
         open={deleteOpen}

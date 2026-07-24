@@ -91,6 +91,48 @@ const productService = {
       return getMockProducts();
     }
   },
+  getProduct: async (id) => {
+    try {
+      const response = await api.get(`/products/${id}/`);
+      const prod = response.data;
+      return {
+        id: prod.id,
+        name: prod.name,
+        brand: prod.brand || null,
+        description: prod.description || "",
+        categoryId: prod.category,
+        category: prod.category_name || `Category (ID: ${prod.category})`,
+        status: prod.is_active !== false ? "Active" : "Inactive",
+        variants: prod.variants ? prod.variants.map(v => ({
+          id: v.id,
+          product: v.product,
+          name: v.name,
+          sku: v.sku,
+          price: parseFloat(v.price),
+          stock: parseInt(v.stock, 10),
+          status: v.is_active !== false ? "Active" : "Inactive",
+          images: v.images || []
+        })) : []
+      };
+    } catch (err) {
+      console.warn("Backend get product failed, using mock:", err);
+      const products = getMockProducts();
+      const product = products.find(p => p.id === parseInt(id, 10));
+      if (product) {
+        const variants = getMockProductVariants().filter(v => v.product === parseInt(id, 10));
+        const images = getMockProductImages().filter(img => img.product === parseInt(id, 10));
+        const variantsWithImages = variants.map(v => ({
+          ...v,
+          images: images.filter(img => img.variant === v.id || (!img.variant && img.product === product.id))
+        }));
+        return {
+          ...product,
+          variants: variantsWithImages
+        };
+      }
+      throw err;
+    }
+  },
 
   createProduct: async (productData) => {
     try {

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import CheckoutModal from "../components/checkout/CheckoutModal";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Breadcrumbs from "../components/Breadcrumbs";
 import cartService from "../services/cartService";
 
 /**
@@ -157,6 +158,8 @@ function Cart({ cart, cartItems = [], setCart, wishlist = [], user, setUser }) {
         user={user}
         setUser={setUser}
       />
+
+      <Breadcrumbs />
 
       <main className="container page-cart-container">
         <h1 className="cart-page-title">Shopping Cart</h1>

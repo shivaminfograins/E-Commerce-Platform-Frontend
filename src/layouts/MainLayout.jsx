@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Breadcrumbs from "../components/Breadcrumbs";
 import { useNavigate } from "react-router-dom";
 
 function MainLayout({
@@ -25,6 +26,8 @@ function MainLayout({
         user={user}
         setUser={setUser}
       />
+
+      <Breadcrumbs />
 
       {children}
 

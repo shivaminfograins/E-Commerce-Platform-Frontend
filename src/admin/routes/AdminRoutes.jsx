@@ -7,6 +7,9 @@ import Categories from "../pages/Categories/Categories";
 import CategoryImages from "../pages/Categories/CategoryImages";
 import Brands from "../pages/Brands/Brands";
 import Products from "../pages/Products/Products";
+import ProductCreate from "../pages/Products/ProductCreate";
+import ProductUpdate from "../pages/Products/ProductUpdate";
+import ProductDetails from "../pages/Products/ProductDetails";
 import ProductVariants from "../pages/Products/ProductVariants";
 import ProductImages from "../pages/Products/ProductImages";
 import CustomerList from "../pages/Customers/CustomerList";
@@ -30,6 +33,9 @@ function AdminRoutes() {
           <Route path="category-images" element={<CategoryImages />} />
           <Route path="brands" element={<Brands />} />
           <Route path="products" element={<Products />} />
+          <Route path="products/create" element={<ProductCreate />} />
+          <Route path="products/:id" element={<ProductDetails />} />
+          <Route path="products/:id/edit" element={<ProductUpdate />} />
           <Route path="product-variants" element={<ProductVariants />} />
           <Route path="product-images" element={<ProductImages />} />
           <Route path="customers" element={<CustomerList />} />

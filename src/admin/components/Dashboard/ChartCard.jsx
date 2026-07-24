@@ -6,9 +6,15 @@ function ChartCard({ title, subtitle, children }) {
     <Card
       sx={{
         borderRadius: "16px",
-        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.02)",
-        border: "1px solid rgba(15, 23, 42, 0.05)",
-        height: "100%"
+        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.03)",
+        border: "1px solid rgba(15, 23, 42, 0.06)",
+        height: "100%",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
+          borderColor: "rgba(15, 23, 42, 0.12)",
+        }
       }}
     >
       <CardContent sx={{ p: 3 }}>

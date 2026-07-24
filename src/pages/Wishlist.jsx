@@ -7,7 +7,14 @@ import EmptyWishlist from "../components/wishlist/EmptyWishlist";
 import api from "../api/axios";
 import cartService from "../services/cartService";
 
-function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) {
+function Wishlist({
+  cart,
+  setCart,
+  wishlist = [],
+  setWishlist,
+  user,
+  setUser,
+}) {
   const navigate = useNavigate();
   const [wishlistedProducts, setWishlistedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,9 +28,35 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
   };
 
   const mapBackendProductToWishlistItem = (product) => {
-    const defaultVariant = product.variants?.find((v) => v.is_active && v.stock > 0) || product.variants?.[0];
-    const hasImage = product.images && product.images.length > 0;
-    const imageUrl = hasImage ? getMediaUrl(product.images[0].image) : "";
+    const defaultVariant =
+      product.variants?.find((v) => v.is_active && v.stock > 0) ||
+      product.variants?.[0];
+    // prefer variant primary image, then first variant image, then top-level images
+    let rawImage = null;
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      for (const variant of product.variants) {
+        const primary = variant.images?.find((img) => img.is_primary);
+        if (primary?.image) {
+          rawImage = primary.image;
+          break;
+        }
+      }
+
+      if (!rawImage) {
+        for (const variant of product.variants) {
+          if (variant.images && variant.images.length > 0) {
+            rawImage = variant.images[0].image || variant.images[0].url;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!rawImage && product.images && product.images.length > 0) {
+      rawImage = product.images[0].image || product.images[0].url;
+    }
+
+    const imageUrl = rawImage ? getMediaUrl(rawImage) : "";
     const basePrice = defaultVariant ? parseFloat(defaultVariant.price) : 0;
 
     return {
@@ -32,7 +65,7 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
       brand: "ShopEase",
       price: basePrice,
       image: imageUrl,
-      variantId: defaultVariant?.id
+      variantId: defaultVariant?.id,
     };
   };
 
@@ -42,7 +75,9 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
         try {
           setLoading(true);
           const response = await api.get("/wishlist/");
-          const productsData = response.data.map(item => mapBackendProductToWishlistItem(item.product));
+          const productsData = response.data.map((item) =>
+            mapBackendProductToWishlistItem(item.product),
+          );
           setWishlistedProducts(productsData);
         } catch (e) {
           console.error("Failed to fetch wishlist details:", e);
@@ -61,7 +96,9 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
 
   const handleRemove = (productId) => {
     setWishlist(productId);
-    setWishlistedProducts(prev => prev.filter(item => item.id !== productId));
+    setWishlistedProducts((prev) =>
+      prev.filter((item) => item.id !== productId),
+    );
   };
 
   const handleAddToCart = async (item) => {
@@ -70,14 +107,16 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
       navigate(`/product/${item.id}`);
       return;
     }
-    
+
     try {
       const response = await cartService.addToCart(item.variantId, 1);
       // Update global cart state
       setCart(response.data);
       // Remove from wishlist
       setWishlist(item.id);
-      setWishlistedProducts(prev => prev.filter(wishItem => wishItem.id !== item.id));
+      setWishlistedProducts((prev) =>
+        prev.filter((wishItem) => wishItem.id !== item.id),
+      );
     } catch (err) {
       console.error("Failed to add wishlisted item to cart:", err);
       alert("Failed to add item to cart. Please try again.");
@@ -85,7 +124,12 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
   };
 
   return (
-    <MainLayout cartCount={cartCount} wishlistCount={wishlist.length} user={user} setUser={setUser}>
+    <MainLayout
+      cartCount={cartCount}
+      wishlistCount={wishlist.length}
+      user={user}
+      setUser={setUser}
+    >
       <div className="container">
         <div className="page-header" style={{ margin: "40px 0" }}>
           <h1>❤️ My Wishlist</h1>
@@ -96,8 +140,20 @@ function Wishlist({ cart, setCart, wishlist = [], setWishlist, user, setUser }) 
         {loading ? (
           <p className="section-message">Loading wishlist items...</p>
         ) : wishlistedProducts.length > 0 ? (
-          <div className="wishlist-page-layout" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "30px", alignItems: "start" }}>
-            <WishlistList wishlist={wishlistedProducts} onRemove={handleRemove} onAddToCart={handleAddToCart} />
+          <div
+            className="wishlist-page-layout"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 300px",
+              gap: "30px",
+              alignItems: "start",
+            }}
+          >
+            <WishlistList
+              wishlist={wishlistedProducts}
+              onRemove={handleRemove}
+              onAddToCart={handleAddToCart}
+            />
 
             <WishlistSummary wishlist={wishlistedProducts} />
           </div>

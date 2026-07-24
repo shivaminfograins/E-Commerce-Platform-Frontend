@@ -12,6 +12,7 @@ import RelatedProducts from "../components/RelatedProducts";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Breadcrumbs from "../components/Breadcrumbs";
 
 /**
  * ProductDetails.jsx
@@ -25,7 +26,14 @@ import Footer from "../components/Footer";
  *  - Cart count is derived from cartItems (passed from App) rather than
  *    the local `cart` map, so the Navbar badge is always accurate.
  */
-function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], user, setUser }) {
+function ProductDetails({
+  cart = {},
+  setCart,
+  cartItems = [],
+  wishlist = [],
+  user,
+  setUser,
+}) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -59,9 +67,32 @@ function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], use
       try {
         const data = await productService.getProduct(id);
 
-        const imageUrl = normalizeUrl(
-          data.images?.[0]?.image || data.images?.[0]?.url || ""
-        );
+        // Prefer variant primary image, then first variant image, then top-level product.images
+        let rawImage = null;
+        if (Array.isArray(data.variants) && data.variants.length > 0) {
+          for (const variant of data.variants) {
+            const primary = variant.images?.find((img) => img.is_primary);
+            if (primary?.image) {
+              rawImage = primary.image;
+              break;
+            }
+          }
+
+          if (!rawImage) {
+            for (const variant of data.variants) {
+              if (variant.images && variant.images.length > 0) {
+                rawImage = variant.images[0].image || variant.images[0].url;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!rawImage && Array.isArray(data.images) && data.images.length) {
+          rawImage = data.images[0].image || data.images[0].url || null;
+        }
+
+        const imageUrl = normalizeUrl(rawImage) || null;
 
         // Keep the raw variants so ProductInfo can render the selector
         const rawVariants = Array.isArray(data.variants) ? data.variants : [];
@@ -92,7 +123,8 @@ function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], use
         });
 
         const relatedItems =
-          Array.isArray(categoryProductsResponse) && categoryProductsResponse.length
+          Array.isArray(categoryProductsResponse) &&
+          categoryProductsResponse.length
             ? categoryProductsResponse
             : categoryProductsResponse.results ||
               categoryProductsResponse.products ||
@@ -102,7 +134,31 @@ function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], use
           .filter((item) => item.id !== data.id)
           .slice(0, 4)
           .map((item) => {
-            const rawImg = item.images?.[0]?.image || item.images?.[0]?.url || "";
+            // prefer variant primary image, then first variant image, then top-level images
+            let rawImg = null;
+            if (Array.isArray(item.variants) && item.variants.length > 0) {
+              for (const variant of item.variants) {
+                const primary = variant.images?.find((img) => img.is_primary);
+                if (primary?.image) {
+                  rawImg = primary.image;
+                  break;
+                }
+              }
+
+              if (!rawImg) {
+                for (const variant of item.variants) {
+                  if (variant.images && variant.images.length > 0) {
+                    rawImg = variant.images[0].image || variant.images[0].url;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (!rawImg && Array.isArray(item.images) && item.images.length) {
+              rawImg = item.images[0].image || item.images[0].url || null;
+            }
+
             return {
               id: item.id,
               name: item.name,
@@ -115,8 +171,6 @@ function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], use
               reviewsCount: item.reviewsCount || 0,
               image: normalizeUrl(rawImg),
               badge: item.badge || "",
-              // Expose variants so RelatedProducts → ProductCard can redirect
-              // to the detail page (no inline add-to-cart on cards any more)
               variants: item.variants || [],
             };
           });
@@ -194,14 +248,18 @@ function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], use
     setAddingToCart(true);
     setCartFeedback("");
     try {
-      const response = await cartService.addToCart(selectedVariant.id, quantity);
+      const response = await cartService.addToCart(
+        selectedVariant.id,
+        quantity,
+      );
       // Propagate backend state to App so Navbar badge + Cart page update
       setCart(response.data);
       setQuantity(1);
       setCartFeedback("success");
     } catch (err) {
       const msg =
-        err?.response?.data?.detail || "Could not add to cart. Please try again.";
+        err?.response?.data?.detail ||
+        "Could not add to cart. Please try again.";
       setCartFeedback(msg);
     } finally {
       setAddingToCart(false);
@@ -219,9 +277,15 @@ function ProductDetails({ cart = {}, setCart, cartItems = [], wishlist = [], use
     <>
       <Navbar {...navbarProps} />
 
+      <Breadcrumbs productName={product?.name} />
+
       <div className="container">
         <div className="product-details-layout">
-          <ProductGallery product={product} />
+          <ProductGallery 
+            product={product} 
+            variants={variants} 
+            selectedVariant={selectedVariant} 
+          />
 
           <div>
             <ProductInfo

@@ -1,12 +1,12 @@
 import api from "../../api/axios";
 
 const reportService = {
-  getSummaryMetrics: async () => {
+  getSummaryMetrics: async (params = {}) => {
     const [sales, rev, ord, cust, prod] = await Promise.all([
-      api.get("/admin/reports/sales/"),
-      api.get("/admin/reports/revenue/"),
-      api.get("/admin/reports/orders/"),
-      api.get("/admin/reports/customers/"),
+      api.get("/admin/reports/sales/", { params }),
+      api.get("/admin/reports/revenue/", { params }),
+      api.get("/admin/reports/orders/", { params }),
+      api.get("/admin/reports/customers/", { params }),
       api.get("/admin/reports/products/")
     ]);
 
@@ -41,13 +41,13 @@ const reportService = {
     };
   },
 
-  getRevenueData: async () => {
-    const response = await api.get("/admin/reports/revenue/");
+  getRevenueData: async (params = {}) => {
+    const response = await api.get("/admin/reports/revenue/", { params });
     return { data: response.data.trend || [] };
   },
 
-  getSalesData: async () => {
-    const response = await api.get("/admin/reports/sales/");
+  getSalesData: async (params = {}) => {
+    const response = await api.get("/admin/reports/sales/", { params });
     return { data: response.data.trend || [] };
   },
 

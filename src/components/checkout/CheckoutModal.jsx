@@ -245,9 +245,16 @@ function CheckoutModal({
 
     try {
       // 1. Create order on the backend first
+      // Convert cartItems to the format expected by backend
+      const orderItems = cartItems.map((item) => ({
+        variant_id: item.variant_id,
+        quantity: item.quantity,
+      }));
+
       const response = await orderService.placeOrder({
         address: selectedAddr,
         payment_method: payment,
+        items: orderItems,
       });
 
       if (response.data.success) {
@@ -509,20 +516,26 @@ function CheckoutModal({
                 ) : (
                   <div className="co-add-addr-form">
                     <h4 className="co-form-title">Add New Delivery Address</h4>
-                    {formError && <p className="co-form-error-msg">⚠️ {formError}</p>}
+                    {formError && (
+                      <p className="co-form-error-msg">⚠️ {formError}</p>
+                    )}
                     <div className="co-form-row">
                       <input
                         type="text"
                         placeholder="Full Name"
                         value={newAddr.full_name}
-                        onChange={(e) => setNewAddr({ ...newAddr, full_name: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({ ...newAddr, full_name: e.target.value })
+                        }
                         required
                       />
                       <input
                         type="text"
                         placeholder="Phone Number"
                         value={newAddr.phone}
-                        onChange={(e) => setNewAddr({ ...newAddr, phone: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({ ...newAddr, phone: e.target.value })
+                        }
                         required
                       />
                     </div>
@@ -531,7 +544,12 @@ function CheckoutModal({
                         type="text"
                         placeholder="Address Line 1"
                         value={newAddr.address_line_1}
-                        onChange={(e) => setNewAddr({ ...newAddr, address_line_1: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({
+                            ...newAddr,
+                            address_line_1: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
@@ -540,7 +558,12 @@ function CheckoutModal({
                         type="text"
                         placeholder="Address Line 2 (Optional)"
                         value={newAddr.address_line_2}
-                        onChange={(e) => setNewAddr({ ...newAddr, address_line_2: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({
+                            ...newAddr,
+                            address_line_2: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="co-form-row co-form-row--three">
@@ -548,21 +571,30 @@ function CheckoutModal({
                         type="text"
                         placeholder="City"
                         value={newAddr.city}
-                        onChange={(e) => setNewAddr({ ...newAddr, city: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({ ...newAddr, city: e.target.value })
+                        }
                         required
                       />
                       <input
                         type="text"
                         placeholder="State"
                         value={newAddr.state}
-                        onChange={(e) => setNewAddr({ ...newAddr, state: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({ ...newAddr, state: e.target.value })
+                        }
                         required
                       />
                       <input
                         type="text"
                         placeholder="Pincode"
                         value={newAddr.postal_code}
-                        onChange={(e) => setNewAddr({ ...newAddr, postal_code: e.target.value })}
+                        onChange={(e) =>
+                          setNewAddr({
+                            ...newAddr,
+                            postal_code: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>

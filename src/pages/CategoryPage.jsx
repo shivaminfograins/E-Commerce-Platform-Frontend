@@ -138,6 +138,7 @@ function CategoryPage({ cart = {}, wishlist = [], user, setUser }) {
 
       // API returns images as an array: [{ image: "/media/categories/foo.png" }]
       const apiImagePath =
+        category?.image ||
         category?.images?.[0]?.image ||
         category?.images?.[0]?.url ||
         null;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination, TableSortLabel, IconButton, Box, Paper } from "@mui/material";
 
 function ProductTable({ products = [], categories = [], brands = [], onEdit, onDelete }) {
@@ -128,7 +129,11 @@ function ProductTable({ products = [], categories = [], brands = [], onEdit, onD
             {paginatedProducts.map((product) => (
               <TableRow key={product.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                 <TableCell sx={{ fontWeight: 600 }}>{product.id}</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "#1e293b" }}>{product.name}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>
+                  <Link to={`/admin/products/${product.id}`} style={{ color: "#4f46e5", textDecoration: "none" }}>
+                    {product.name}
+                  </Link>
+                </TableCell>
                 <TableCell sx={{ fontWeight: 500, color: "#475569" }}>{getBrandName(product.brand)}</TableCell>
                 <TableCell>
                   <Box sx={{ display: "inline-block", px: 1.5, py: 0.5, borderRadius: "50px", fontSize: "0.8rem", bgcolor: "#f1f5f9", color: "#475569", fontWeight: 600 }}>

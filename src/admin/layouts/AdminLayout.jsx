@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar/Sidebar";
 import Header from "../components/Header/Header";
 import Footer from "../components/Footer/Footer";
 import ProtectedRoute from "../components/ProtectedRoute/ProtectedRoute";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import { AdminThemeProvider, useAdminTheme } from "../context/AdminThemeContext";
 
 function AdminLayoutContent() {
@@ -57,6 +58,7 @@ function AdminLayoutContent() {
               flexDirection: "column",
             }}
           >
+            <Breadcrumbs />
             <Outlet />
           </Box>
 

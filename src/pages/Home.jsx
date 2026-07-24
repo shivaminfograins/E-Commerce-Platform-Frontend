@@ -30,8 +30,14 @@ function FlashSaleCountdown() {
         return "00:00:00";
       }
 
-      const hrs = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, "0");
-      const mins = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0");
+      const hrs = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(
+        2,
+        "0",
+      );
+      const mins = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(
+        2,
+        "0",
+      );
       const secs = String(Math.floor((diff / 1000) % 60)).padStart(2, "0");
       return `${hrs}:${mins}:${secs}`;
     };
@@ -130,11 +136,39 @@ function Home({
             : data.results || data.products || [];
 
         const normalizedProducts = items.map((product) => {
-          const rawImage =
-            product.images?.[0]?.image || product.images?.[0]?.url || "";
+          // prefer variant primary image, then first variant image, then top-level product.images
+          let rawImage = null;
+          if (Array.isArray(product.variants) && product.variants.length > 0) {
+            for (const variant of product.variants) {
+              const primary = variant.images?.find((img) => img.is_primary);
+              if (primary?.image) {
+                rawImage = primary.image;
+                break;
+              }
+            }
+
+            if (!rawImage) {
+              for (const variant of product.variants) {
+                if (variant.images && variant.images.length > 0) {
+                  rawImage = variant.images[0].image || variant.images[0].url;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (
+            !rawImage &&
+            Array.isArray(product.images) &&
+            product.images.length
+          ) {
+            rawImage = product.images[0].image || product.images[0].url || null;
+          }
+
           const normalizeUrl = (url) => {
             if (!url || typeof url !== "string") return "";
-            if (url.startsWith("http://") || url.startsWith("https://")) return url;
+            if (url.startsWith("http://") || url.startsWith("https://"))
+              return url;
             return url;
           };
           const imageUrl = normalizeUrl(rawImage);
@@ -142,8 +176,12 @@ function Home({
           const price = firstVariant.price ? Number(firstVariant.price) : 0;
 
           // Generate realistic discount structure for production UI look
-          const discountPercent = product.id % 3 === 0 ? 15 : product.id % 4 === 0 ? 25 : 0;
-          const originalPrice = discountPercent > 0 ? Math.round(price / (1 - discountPercent / 100)) : price;
+          const discountPercent =
+            product.id % 3 === 0 ? 15 : product.id % 4 === 0 ? 25 : 0;
+          const originalPrice =
+            discountPercent > 0
+              ? Math.round(price / (1 - discountPercent / 100))
+              : price;
 
           return {
             id: product.id,
@@ -153,9 +191,14 @@ function Home({
             price,
             originalPrice,
             discountPercent,
-            rating: product.rating || (4.0 + (product.id % 10) * 0.1),
-            reviewsCount: product.reviewsCount || (12 + product.id * 7),
-            badge: product.id % 5 === 0 ? "Best Seller" : product.id % 3 === 0 ? "Hot" : "",
+            rating: product.rating || 4.0 + (product.id % 10) * 0.1,
+            reviewsCount: product.reviewsCount || 12 + product.id * 7,
+            badge:
+              product.id % 5 === 0
+                ? "Best Seller"
+                : product.id % 3 === 0
+                  ? "Hot"
+                  : "",
             category: product.category,
             description: product.description,
           };
@@ -185,10 +228,11 @@ function Home({
 
       const [catData, imgData] = await Promise.all([
         categoryService.getCategories(),
-        categoryService.getCategoryImages().catch(() => [])
+        categoryService.getCategoryImages().catch(() => []),
       ]);
 
-      const BACKEND_ORIGIN = import.meta.env.VITE_MEDIA_BASE_URL || "http://127.0.0.1:8000";
+      const BACKEND_ORIGIN =
+        import.meta.env.VITE_MEDIA_BASE_URL || "http://127.0.0.1:8000";
       const normalizeMediaUrl = (url) => {
         if (!url) return "";
         if (url.startsWith("http://") || url.startsWith("https://")) return url;
@@ -198,7 +242,7 @@ function Home({
 
       const imageMap = {};
       if (Array.isArray(imgData)) {
-        imgData.forEach(img => {
+        imgData.forEach((img) => {
           if (img.category) {
             imageMap[img.category] = normalizeMediaUrl(img.image);
           }
@@ -206,38 +250,52 @@ function Home({
       }
 
       const fallbackImages = {
-        "all": "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=300&fit=crop&q=80",
-        "electronics": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=150&fit=crop&q=60",
-        "books": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&fit=crop&q=60",
-        "home": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=150&fit=crop&q=60",
-        "sports": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=150&fit=crop&q=60",
-        "arts": "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=150&fit=crop&q=60",
-        "gifts": "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=150&fit=crop&q=60",
-        "cat 1": "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=150&fit=crop&q=60",
+        all: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=300&fit=crop&q=80",
+        electronics:
+          "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=150&fit=crop&q=60",
+        books:
+          "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=150&fit=crop&q=60",
+        home: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=150&fit=crop&q=60",
+        sports:
+          "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=150&fit=crop&q=60",
+        arts: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=150&fit=crop&q=60",
+        gifts:
+          "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=150&fit=crop&q=60",
+        "cat 1":
+          "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=150&fit=crop&q=60",
       };
 
       let myCategories = catData.map((category) => {
         const catNameLower = category.name.toLowerCase();
-        const apiImagePath = category.images?.[0]?.image || category.images?.[0]?.url || "";
-        let image = normalizeMediaUrl(apiImagePath) || imageMap[category.id] || "";
+        const apiImagePath =
+          category.image ||
+          category.images?.[0]?.image ||
+          category.images?.[0]?.url ||
+          "";
+        let image =
+          normalizeMediaUrl(apiImagePath) || imageMap[category.id] || "";
         if (!image) {
-          const key = Object.keys(fallbackImages).find(k => catNameLower.includes(k));
-          image = key ? fallbackImages[key] : "https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?w=150&fit=crop&q=60";
+          const key = Object.keys(fallbackImages).find((k) =>
+            catNameLower.includes(k),
+          );
+          image = key
+            ? fallbackImages[key]
+            : "https://images.unsplash.com/photo-1540959733332-eab4deceeaf7?w=150&fit=crop&q=60";
         }
         return {
           id: category.id,
           name: category.name,
-          image: image
+          image: image,
         };
       });
 
       setCategories([
-        { 
-          id: 0, 
-          name: "All", 
-          image: fallbackImages["all"] 
-        }, 
-        ...myCategories
+        {
+          id: 0,
+          name: "All",
+          image: fallbackImages["all"],
+        },
+        ...myCategories,
       ]);
     } catch (error) {
       console.error(error);
@@ -289,7 +347,9 @@ function Home({
   }));
 
   // Filtering & Sorting Logic for search results
-  const uniqueBrands = Array.from(new Set(productsWithMeta.map(p => p.brand).filter(Boolean)));
+  const uniqueBrands = Array.from(
+    new Set(productsWithMeta.map((p) => p.brand).filter(Boolean)),
+  );
 
   const filteredSearchResults = productsWithMeta.filter((product) => {
     // Brand Filter
@@ -297,14 +357,19 @@ function Home({
 
     // Price Filter
     if (filterPrice === "under10k" && product.price >= 10000) return false;
-    if (filterPrice === "10kto50k" && (product.price < 10000 || product.price > 50000)) return false;
+    if (
+      filterPrice === "10kto50k" &&
+      (product.price < 10000 || product.price > 50000)
+    )
+      return false;
     if (filterPrice === "above50k" && product.price <= 50000) return false;
 
     // Rating Filter
     if (filterRating > 0 && product.rating < filterRating) return false;
 
     // Discount Filter
-    if (filterDiscount > 0 && product.discountPercent < filterDiscount) return false;
+    if (filterDiscount > 0 && product.discountPercent < filterDiscount)
+      return false;
 
     return true;
   });
@@ -322,8 +387,12 @@ function Home({
   }
 
   // Diverse Sections (Non-searching mode)
-  const flashSaleProducts = productsWithMeta.filter(p => p.discountPercent > 0).slice(0, 4);
-  const bestSellerProducts = [...productsWithMeta].sort((a, b) => b.rating - a.rating).slice(0, 10);
+  const flashSaleProducts = productsWithMeta
+    .filter((p) => p.discountPercent > 0)
+    .slice(0, 4);
+  const bestSellerProducts = [...productsWithMeta]
+    .sort((a, b) => b.rating - a.rating)
+    .slice(0, 10);
   const recommendedProducts = [...productsWithMeta].reverse().slice(0, 10);
 
   return (
@@ -502,7 +571,8 @@ function Home({
                 <div className="search-results-content">
                   <div className="results-toolbar">
                     <span className="results-count-text">
-                      Showing <strong>{filteredSearchResults.length}</strong> products for "{debouncedSearch}"
+                      Showing <strong>{filteredSearchResults.length}</strong>{" "}
+                      products for "{debouncedSearch}"
                     </span>
                     <div className="sort-control-wrapper">
                       <span className="sort-label">Sort by:</span>
@@ -520,7 +590,9 @@ function Home({
                   </div>
 
                   {filteredSearchResults.length === 0 ? (
-                    <p className="section-message">No products match your filters.</p>
+                    <p className="section-message">
+                      No products match your filters.
+                    </p>
                   ) : (
                     <ProductList
                       products={filteredSearchResults}
@@ -559,32 +631,48 @@ function Home({
                 {/* 2. Best Sellers */}
                 {bestSellerProducts.length > 0 && (
                   <section className="homepage-section-block best-sellers-section">
-                    <div className="section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div
+                      className="section-header-row"
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <h2>Trending & Best Sellers</h2>
-                      <button 
-                        onClick={() => navigate("/products")} 
+                      <button
+                        onClick={() => navigate("/products")}
                         className="view-all-link"
-                        style={{ background: "none", border: "none", color: "#7c3aed", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#7c3aed",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                        }}
                       >
                         View All →
                       </button>
                     </div>
                     <div className="trending-best-sellers-grid">
                       {bestSellerProducts.map((product) => (
-                        <div 
-                          key={product.id} 
-                          className="trending-card" 
+                        <div
+                          key={product.id}
+                          className="trending-card"
                           onClick={() => navigate(`/product/${product.id}`)}
                         >
                           <div className="trending-card__img-wrapper">
-                            <img 
-                              src={product.image} 
-                              alt={product.name} 
-                              className="trending-card__img" 
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="trending-card__img"
                             />
                           </div>
                           <div className="trending-card__content">
-                            <h3 className="trending-card__name">{product.name}</h3>
+                            <h3 className="trending-card__name">
+                              {product.name}
+                            </h3>
                           </div>
                         </div>
                       ))}
@@ -595,32 +683,48 @@ function Home({
                 {/* 3. Recommended for You */}
                 {recommendedProducts.length > 0 && (
                   <section className="homepage-section-block recommended-section">
-                    <div className="section-header-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div
+                      className="section-header-row"
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <h2>Recommended for You</h2>
-                      <button 
-                        onClick={() => navigate("/products")} 
+                      <button
+                        onClick={() => navigate("/products")}
                         className="view-all-link"
-                        style={{ background: "none", border: "none", color: "#7c3aed", fontWeight: "700", cursor: "pointer", fontSize: "14px" }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#7c3aed",
+                          fontWeight: "700",
+                          cursor: "pointer",
+                          fontSize: "14px",
+                        }}
                       >
                         View All →
                       </button>
                     </div>
                     <div className="trending-best-sellers-grid">
                       {recommendedProducts.map((product) => (
-                        <div 
-                          key={product.id} 
-                          className="trending-card" 
+                        <div
+                          key={product.id}
+                          className="trending-card"
                           onClick={() => navigate(`/product/${product.id}`)}
                         >
                           <div className="trending-card__img-wrapper">
-                            <img 
-                              src={product.image} 
-                              alt={product.name} 
-                              className="trending-card__img" 
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="trending-card__img"
                             />
                           </div>
                           <div className="trending-card__content">
-                            <h3 className="trending-card__name">{product.name}</h3>
+                            <h3 className="trending-card__name">
+                              {product.name}
+                            </h3>
                           </div>
                         </div>
                       ))}

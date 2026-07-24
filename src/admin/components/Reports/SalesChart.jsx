@@ -7,10 +7,10 @@ function SalesChart({ data = [] }) {
     <Paper sx={{ p: 3, borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.05)", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.02)" }}>
       <Box sx={{ mb: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 800, color: "#1e293b" }}>
-          Monthly Order Trends
+          Monthly Product Sales Trends
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Historical order checkouts completed monthly
+          Monthly product sales units
         </Typography>
       </Box>
       <Box sx={{ width: "100%", height: 300 }}>
@@ -25,10 +25,10 @@ function SalesChart({ data = [] }) {
             />
             <Legend verticalAlign="top" height={36} />
             <Line
-              name="Orders Count"
+              name="Sales Units"
               type="monotone"
-              dataKey="orders"
-              stroke="#8b5cf6"
+              dataKey="sales"
+              stroke="#3b82f6"
               strokeWidth={3}
               dot={{ r: 4, strokeWidth: 2 }}
               activeDot={{ r: 6 }}

@@ -1,7 +1,9 @@
 import React from "react";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
 function OrderHistory({ orders = [] }) {
+  const navigate = useNavigate();
   // Helper to format currency
   const formatCurrency = (val) => {
     return `₹${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -52,7 +54,15 @@ function OrderHistory({ orders = [] }) {
               const orderStyle = getStatusStyle(order.status);
               return (
                 <TableRow key={order.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                  <TableCell sx={{ fontWeight: 700, color: "#3b82f6" }}>
+                  <TableCell 
+                    onClick={() => navigate(`/admin/orders/${order.dbId || order.id}`)}
+                    sx={{ 
+                      fontWeight: 700, 
+                      color: "#3b82f6", 
+                      cursor: "pointer", 
+                      "&:hover": { textDecoration: "underline" } 
+                    }}
+                  >
                     {order.id}
                   </TableCell>
                   <TableCell sx={{ color: "#475569" }}>

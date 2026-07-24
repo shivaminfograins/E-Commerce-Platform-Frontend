@@ -62,14 +62,41 @@ export function useProducts(
             : data.results || data.products || [];
 
         const normalizedProducts = items.map((product) => {
-          const rawImage =
-            product.images?.[0]?.image || product.images?.[0]?.url || "";
+          // Prefer variant images (primary) if available, otherwise first available
+          let rawImage = null;
+          if (Array.isArray(product.variants) && product.variants.length > 0) {
+            for (const variant of product.variants) {
+              const primary = variant.images?.find((img) => img.is_primary);
+              if (primary?.image) {
+                rawImage = primary.image;
+                break;
+              }
+            }
+
+            if (!rawImage) {
+              for (const variant of product.variants) {
+                if (variant.images && variant.images.length > 0) {
+                  rawImage = variant.images[0].image || variant.images[0].url;
+                  break;
+                }
+              }
+            }
+          }
+
+          // also allow top-level product.images as a fallback (older API shape)
+          if (
+            !rawImage &&
+            Array.isArray(product.images) &&
+            product.images.length
+          )
+            rawImage = product.images[0].image || product.images[0].url || null;
+
           // /media/* is proxied through Vite to Django; absolute URLs pass through.
           const normalizeUrl = (url) => {
-            if (!url || typeof url !== "string") return "";
+            if (!url || typeof url !== "string") return null;
             if (url.startsWith("http://") || url.startsWith("https://"))
               return url;
-            return url; // relative paths like /media/... work via Vite proxy
+            return url;
           };
           const imageUrl = normalizeUrl(rawImage);
 
@@ -91,6 +118,7 @@ export function useProducts(
             name: product.name,
             brand: product.brand || "",
             image: imageUrl,
+            variants: product.variants || [],
             price,
             originalPrice: price,
             minPrice,

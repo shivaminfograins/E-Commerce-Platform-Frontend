@@ -38,6 +38,12 @@ function ProductCard({
   onToggleWishlist,
 }) {
   const [isHovered, setIsHovered] = useState(false);
+  const [imgSrc, setImgSrc] = useState(image || null);
+
+  // keep local imgSrc in sync when prop changes
+  if (image && image !== imgSrc) {
+    setImgSrc(image);
+  }
 
   return (
     <div
@@ -47,7 +53,9 @@ function ProductCard({
     >
       {/* Badge (e.g. Best Seller, Hot, Premium, New) */}
       {badge && (
-        <span className={`badge badge--${badge.toLowerCase().replace(" ", "-")}`}>
+        <span
+          className={`badge badge--${badge.toLowerCase().replace(" ", "-")}`}
+        >
           {badge}
         </span>
       )}
@@ -74,7 +82,31 @@ function ProductCard({
 
       {/* Product Image & Media Container */}
       <div className="product-media">
-        <img src={image} alt={name} className="product-image" />
+        {imgSrc ? (
+          <img
+            src={imgSrc}
+            alt={name}
+            className="product-image"
+            onError={() => setImgSrc(null)}
+          />
+        ) : (
+          <div className="product-image-placeholder" aria-hidden>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#cbd5e1"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M8 14l2.5-3 2 2.5L16 10l3 4H5z" />
+            </svg>
+          </div>
+        )}
         {isHovered && (
           <div className="media-overlay">
             <Link to={`/product/${id}`} className="product-link">
@@ -130,12 +162,27 @@ function ProductCard({
           </span>
         </div>
 
-        <div className="price-action-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
+        <div
+          className="price-action-row"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "auto",
+          }}
+        >
           {/* Pricing */}
           <div className="price-container" style={{ marginBottom: 0 }}>
             <span className="price-current">₹{price.toLocaleString()}</span>
             {originalPrice && (
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginTop: "4px",
+                }}
+              >
                 <span className="price-original">
                   ₹{originalPrice.toLocaleString()}
                 </span>
@@ -186,7 +233,11 @@ function ProductCard({
               </div>
             ) : (
               /* Navigate to detail page — variant selection is required */
-              <Link to={`/product/${id}`} className="card-cart-btn" aria-label="Add to Cart">
+              <Link
+                to={`/product/${id}`}
+                className="card-cart-btn"
+                aria-label="Add to Cart"
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"

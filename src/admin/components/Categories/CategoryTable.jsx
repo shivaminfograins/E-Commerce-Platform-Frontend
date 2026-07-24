@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, IconButton, Box } from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TablePagination, TableSortLabel, IconButton, Box, Avatar } from "@mui/material";
+
+const BACKEND_ORIGIN = import.meta.env.VITE_MEDIA_BASE_URL || "http://127.0.0.1:8000";
+
+const normalizeMediaUrl = (url) => {
+  if (!url || typeof url !== "string") return null;
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:") || url.startsWith("blob:")) return url;
+  if (url.startsWith("/media/")) return BACKEND_ORIGIN + url;
+  return url;
+};
 
 function CategoryTable({ categories = [], onEdit, onDelete }) {
   const [page, setPage] = useState(0);
@@ -105,7 +114,18 @@ function CategoryTable({ categories = [], onEdit, onDelete }) {
             {paginatedCategories.map((category) => (
               <TableRow key={category.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                 <TableCell sx={{ fontWeight: 600 }}>{category.id}</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: "#1e293b" }}>{category.name}</TableCell>
+                <TableCell sx={{ fontWeight: 700, color: "#1e293b" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Avatar
+                      src={normalizeMediaUrl(category.image)}
+                      variant="rounded"
+                      sx={{ width: 36, height: 36, border: "1px solid rgba(15,23,42,0.08)", bgcolor: "#f1f5f9" }}
+                    >
+                      📂
+                    </Avatar>
+                    <span>{category.name}</span>
+                  </Box>
+                </TableCell>
                 <TableCell sx={{ color: "#64748b" }}>{category.description || "—"}</TableCell>
                 <TableCell>{category.count ?? 0}</TableCell>
                 <TableCell>

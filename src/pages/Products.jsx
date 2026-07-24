@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Breadcrumbs from "../components/Breadcrumbs";
 import ProductFilters from "../components/ProductFilters";
 import ProductSort from "../components/ProductSort";
 import ProductList from "../components/ProductList";
@@ -172,6 +173,8 @@ function Products({
         user={user}
         setUser={setUser}
       />
+
+      <Breadcrumbs />
 
       <div className="container">
         <h1 className="page-title">All Products</h1>

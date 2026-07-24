@@ -1,7 +1,18 @@
 import ProductCard from "./ProductCard";
+import defaultProducts from "../data/products";
 
-function RelatedProducts({ products, currentProductId, cart = {}, onAdd, onRemove }) {
-  const relatedProducts = products
+function RelatedProducts({
+  products = [],
+  currentProductId,
+  cart = {},
+  onAdd,
+  onRemove,
+}) {
+  // Use provided related products when available; otherwise fall back to default catalog
+  const source =
+    Array.isArray(products) && products.length ? products : defaultProducts;
+
+  const relatedProducts = source
     .filter((item) => item.id !== currentProductId)
     .slice(0, 4);
 
