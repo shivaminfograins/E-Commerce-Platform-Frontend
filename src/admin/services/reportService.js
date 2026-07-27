@@ -68,6 +68,11 @@ const reportService = {
   getTopCategories: async () => {
     const response = await api.get("/admin/reports/products/");
     return { data: response.data.category_distribution || [] };
+  },
+  
+  getCouponReports: async () => {
+    const response = await api.get("/admin/reports/coupons/");
+    return { data: response.data || [] };
   }
 };
 

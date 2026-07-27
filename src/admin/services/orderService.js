@@ -27,7 +27,10 @@ const orderService = {
       date: o.created_at || new Date().toISOString(),
       total: Number(o.total_amount),
       paymentMethod: o.payment_method_display || o.payment_method || "COD",
-      status: o.status_display || o.status
+      status: o.status_display || o.status,
+      couponCode: o.coupon_code || "",
+      paymentStatus: o.payment_status_display || o.payment_status || "Pending",
+      itemCount: o.item_count || 0
     }));
 
     return {
@@ -63,13 +66,61 @@ const orderService = {
 
     // Build timeline logs based on status
     const timeline = [
-      { status: "Pending", timestamp: o.created_at || new Date().toISOString(), description: "Order created successfully." }
+      { status: "Order Created", timestamp: o.created_at || new Date().toISOString(), description: "Order placed successfully." }
     ];
-    if (o.status !== "pending") {
+    if (o.coupon_code) {
       timeline.push({
-        status: o.status_display || o.status,
+        status: "Coupon Applied",
+        timestamp: o.created_at || new Date().toISOString(),
+        description: `Coupon code '${o.coupon_code}' applied at checkout.`
+      });
+    }
+    if (String(o.payment_status).toLowerCase() === "paid") {
+      timeline.push({
+        status: "Payment Completed",
         timestamp: o.updated_at || new Date().toISOString(),
-        description: `Order updated to ${o.status_display || o.status}.`
+        description: "Payment captured successfully."
+      });
+    }
+    const statusLower = String(o.status).toLowerCase();
+    if (["confirmed", "packed", "shipped", "delivered"].includes(statusLower)) {
+      timeline.push({
+        status: "Order Confirmed",
+        timestamp: o.updated_at || new Date().toISOString(),
+        description: "Order confirmed by administration."
+      });
+    }
+    if (["packed", "shipped", "delivered"].includes(statusLower)) {
+      timeline.push({
+        status: "Packed",
+        timestamp: o.updated_at || new Date().toISOString(),
+        description: "Items packed and ready for dispatch."
+      });
+    }
+    if (["shipped", "delivered"].includes(statusLower)) {
+      timeline.push({
+        status: "Shipped",
+        timestamp: o.updated_at || new Date().toISOString(),
+        description: "Order handed over to courier partner."
+      });
+    }
+    if (statusLower === "delivered") {
+      timeline.push({
+        status: "Delivered",
+        timestamp: o.updated_at || new Date().toISOString(),
+        description: "Order delivered to recipient address."
+      });
+    } else if (statusLower === "cancelled") {
+      timeline.push({
+        status: "Cancelled",
+        timestamp: o.updated_at || new Date().toISOString(),
+        description: "Order was cancelled."
+      });
+    } else if (statusLower === "refunded") {
+      timeline.push({
+        status: "Refunded",
+        timestamp: o.updated_at || new Date().toISOString(),
+        description: "Order was cancelled and amount refunded."
       });
     }
 
@@ -84,6 +135,12 @@ const orderService = {
       paymentMethod: o.payment_method_display || o.payment_method || "COD",
       paymentStatus: o.payment_status_display || o.payment_status || "Pending",
       status: o.status_display || o.status,
+      subtotal: Number(o.subtotal),
+      shippingCharge: Number(o.shipping_charge),
+      discountAmount: Number(o.discount),
+      tax: Number(o.tax),
+      couponCode: o.coupon_code || "",
+      coupon: o.coupon || null,
       shippingAddress: {
         name: o.delivery_address?.full_name || "Customer",
         phone: o.delivery_address?.phone || "",

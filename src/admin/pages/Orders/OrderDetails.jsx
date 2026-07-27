@@ -255,6 +255,50 @@ function OrderDetails() {
             </CardContent>
           </Card>
 
+          {/* Coupon Information Card */}
+          {order.couponCode && (
+            <Card sx={{ mb: 3, borderRadius: "16px", border: "1px solid #10b981", bgcolor: "rgba(16, 185, 129, 0.01)" }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                  <Box sx={{ bgcolor: "#10b981", color: "white", px: 1, py: 0.5, borderRadius: "6px", fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase" }}>
+                    Coupon
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: "#065f46" }}>
+                    Coupon Applied
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">Code</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: "#065f46" }}>{order.couponCode}</Typography>
+                </Box>
+                {order.coupon && (
+                  <>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                      <Typography variant="body2" color="text.secondary">Discount Type</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, textTransform: "capitalize" }}>
+                        {order.coupon.discount_type === "percentage" ? "Percentage" : "Fixed Amount"}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                      <Typography variant="body2" color="text.secondary">Discount Value</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {order.coupon.discount_type === "percentage" ? `${order.coupon.discount_value}%` : formatCurrency(order.coupon.discount_value)}
+                      </Typography>
+                    </Box>
+                  </>
+                )}
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">Actual Discount</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: "#10b981" }}>-{formatCurrency(order.discountAmount)}</Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1.5, pt: 1.5, borderTop: "1px dashed rgba(16, 185, 129, 0.2)" }}>
+                  <Typography variant="body2" color="text.secondary">Status</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 800, color: "#10b981" }}>Applied Successfully</Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Pricing summary */}
           <Card sx={{ mb: 3, borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.05)" }}>
             <CardContent sx={{ p: 3 }}>
@@ -263,11 +307,25 @@ function OrderDetails() {
               </Typography>
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
                 <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(order.total)}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(order.subtotal)}</Typography>
               </Box>
+              {order.couponCode && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">Coupon Discount ({order.couponCode})</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#10b981" }}>
+                    -{formatCurrency(order.discountAmount)}
+                  </Typography>
+                </Box>
+              )}
               <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
                 <Typography variant="body2" color="text.secondary">Shipping Fee</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>FREE</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {order.shippingCharge === 0 ? "FREE" : formatCurrency(order.shippingCharge)}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                <Typography variant="body2" color="text.secondary">Tax</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(order.tax)}</Typography>
               </Box>
               <Divider sx={{ my: 1.5 }} />
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>

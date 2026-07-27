@@ -178,6 +178,49 @@ function KPISection({ stats = {} }) {
           />
         </Grid>
       </Grid>
+
+      {/* Coupon Analytics Row */}
+      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#475569", mb: 2, mt: 4, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        🎟️ Coupon & Discount Metrics
+      </Typography>
+      <Grid container spacing={3}>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Coupon Orders"
+            value={stats.coupon_orders || 0}
+            change="Orders with coupons"
+            color="#10b981"
+            icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/><path d="M12 9v6"/></svg>}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Today's Discount"
+            value={formatCurrency(stats.today_discount_given || 0)}
+            change="Discount given today"
+            color="#ef4444"
+            icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/><circle cx="10" cy="10" r="1"/><circle cx="14" cy="14" r="1"/></svg>}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Most Used Coupon"
+            value={stats.most_used_coupon || "N/A"}
+            change="Highest popularity"
+            color="#8b5cf6"
+            icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <StatCard
+            title="Revenue After Discounts"
+            value={formatCurrency(stats.revenue_after_discounts || stats.revenue || 0)}
+            change="Gross net revenue"
+            color="#f59e0b"
+            icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+          />
+        </Grid>
+      </Grid>
     </Box>
   );
 }

@@ -18,6 +18,7 @@ import OrderList from "../pages/Orders/OrderList";
 import OrderDetails from "../pages/Orders/OrderDetails";
 import Reports from "../pages/Reports/Reports";
 import SettingsPage from "../pages/Settings/SettingsPage";
+import Coupons from "../pages/Coupons/Coupons";
 
 function AdminRoutes() {
   return (
@@ -44,6 +45,7 @@ function AdminRoutes() {
           <Route path="orders/:id" element={<OrderDetails />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="coupons" element={<Coupons />} />
           {/* Catch-all admin routes to redirect to dashboard */}
           <Route path="" element={<Navigate to="dashboard" replace />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />

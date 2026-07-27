@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Grid, Typography, Box, CircularProgress, Alert, FormControl, Select, MenuItem, TextField } from "@mui/material";
+import { Grid, Typography, Box, CircularProgress, Alert, FormControl, Select, MenuItem, TextField, Card, Table, TableHead, TableRow, TableCell, TableBody, TableContainer } from "@mui/material";
 import StatCard from "../../components/Dashboard/StatCard";
 import SalesChart from "../../components/Reports/SalesChart";
 import RevenueChart from "../../components/Reports/RevenueChart";
@@ -13,6 +13,7 @@ function Reports() {
   const [salesData, setSalesData] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [topCategories, setTopCategories] = useState([]);
+  const [couponStats, setCouponStats] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,13 +37,15 @@ function Reports() {
         revenueRes,
         salesRes,
         productsRes,
-        categoriesRes
+        categoriesRes,
+        couponsRes
       ] = await Promise.all([
         reportService.getSummaryMetrics(params),
         reportService.getRevenueData(params),
         reportService.getSalesData(params),
         reportService.getTopProducts(),
-        reportService.getTopCategories()
+        reportService.getTopCategories(),
+        reportService.getCouponReports()
       ]);
 
       setMetrics(metricsRes.data);
@@ -50,6 +53,7 @@ function Reports() {
       setSalesData(salesRes.data);
       setTopProducts(productsRes.data);
       setTopCategories(categoriesRes.data);
+      setCouponStats(couponsRes.data);
     } catch (err) {
       setError("Failed to fetch reports and analytics data.");
     } finally {
@@ -187,6 +191,62 @@ function Reports() {
           <TopProducts products={topProducts} />
         </Grid>
       </Grid>
+
+      {/* Coupon Performance Analysis Table */}
+      <Card sx={{ mt: 4, borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.05)", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.02)" }}>
+        <Box sx={{ p: 3, pb: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: "#1e293b" }}>
+            🎟️ Coupon & Discount Performance
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Historical performance of all discount coupons applied during checkout.
+          </Typography>
+        </Box>
+        <TableContainer>
+          <Table sx={{ minWidth: 600 }}>
+            <TableHead>
+              <TableRow sx={{ "& th": { fontWeight: 700, color: "#475569", bgcolor: "#f8fafc" } }}>
+                <TableCell>Coupon Code</TableCell>
+                <TableCell align="center">Usage Count</TableCell>
+                <TableCell align="right">Revenue Generated</TableCell>
+                <TableCell align="right">Total Discount Given</TableCell>
+                <TableCell align="right">Average Order Value</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {couponStats.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                    No coupons have been used yet.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                couponStats.map((stat) => (
+                  <TableRow key={stat.coupon_code} hover sx={{ "&:last-child td": { border: 0 } }}>
+                    <TableCell sx={{ fontWeight: 800, color: "#1e293b" }}>
+                      <Box sx={{ display: "inline-block", px: 1.5, py: 0.5, borderRadius: "6px", fontSize: "0.85rem", bgcolor: "rgba(16, 185, 129, 0.08)", color: "#065f46", fontWeight: 700, border: "1px solid rgba(16, 185, 129, 0.2)" }}>
+                        {stat.coupon_code}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, color: "#334155" }}>
+                      {stat.usage_count}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: "#0f172a" }}>
+                      ₹{Number(stat.revenue_generated).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: "#ef4444" }}>
+                      -₹{Number(stat.total_discount_given).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, color: "#3b82f6" }}>
+                      ₹{Number(stat.average_order_value).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Card>
     </Box>
   );
 }

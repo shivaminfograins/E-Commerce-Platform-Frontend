@@ -1,5 +1,5 @@
 import React from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Box, Typography, Paper, Tooltip } from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Box, Typography, Paper, Tooltip, Chip } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 const formatCurrency = (val) => {
@@ -25,6 +25,21 @@ const getStatusColor = (status) => {
   }
 };
 
+const getPaymentStatusColor = (status) => {
+  switch (String(status).toLowerCase()) {
+    case "paid":
+      return { bg: "#d1fae5", text: "#16a34a" };
+    case "pending":
+      return { bg: "#fef3c7", text: "#d97706" };
+    case "failed":
+      return { bg: "#fee2e2", text: "#dc2626" };
+    case "refunded":
+      return { bg: "#f1f5f9", text: "#64748b" };
+    default:
+      return { bg: "#f1f5f9", text: "#64748b" };
+  }
+};
+
 const OrderTable = React.memo(function OrderTable({ orders = [] }) {
   const navigate = useNavigate();
 
@@ -34,18 +49,22 @@ const OrderTable = React.memo(function OrderTable({ orders = [] }) {
         <Table sx={{ minWidth: 800 }}>
           <TableHead>
             <TableRow sx={{ "& th": { fontWeight: 700, color: "#475569", bgcolor: "#f8fafc" } }}>
-              <TableCell>Order ID</TableCell>
+              <TableCell>Order Number</TableCell>
               <TableCell>Customer</TableCell>
-              <TableCell>Order Date</TableCell>
-              <TableCell align="right">Amount</TableCell>
+              <TableCell align="center">Items Count</TableCell>
+              <TableCell align="center">Coupon</TableCell>
+              <TableCell align="right">Total Amount</TableCell>
               <TableCell align="center">Payment Method</TableCell>
-              <TableCell align="center">Status</TableCell>
+              <TableCell align="center">Payment Status</TableCell>
+              <TableCell align="center">Order Status</TableCell>
+              <TableCell>Order Date</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.map((order) => {
               const statusStyle = getStatusColor(order.status);
+              const payStatusStyle = getPaymentStatusColor(order.paymentStatus);
               return (
                 <TableRow key={order.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                   <TableCell sx={{ fontWeight: 800, color: "#1e293b" }}>
@@ -59,14 +78,21 @@ const OrderTable = React.memo(function OrderTable({ orders = [] }) {
                       {order.customerEmail}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ color: "#475569", fontSize: "0.9rem" }}>
-                    {new Date(order.date).toLocaleDateString(undefined, {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit"
-                    })}
+                  <TableCell align="center" sx={{ fontWeight: 600, color: "#475569" }}>
+                    {order.itemCount} {order.itemCount === 1 ? "Item" : "Items"}
+                  </TableCell>
+                  <TableCell align="center">
+                    {order.couponCode ? (
+                      <Chip
+                        label={order.couponCode}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                        sx={{ fontWeight: 700, textTransform: "uppercase", borderRadius: "6px" }}
+                      />
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 800, color: "#0f172a" }}>
                     {formatCurrency(order.total)}
@@ -86,12 +112,38 @@ const OrderTable = React.memo(function OrderTable({ orders = [] }) {
                         fontSize: "0.75rem",
                         fontWeight: 800,
                         textTransform: "uppercase",
+                        bgcolor: payStatusStyle.bg,
+                        color: payStatusStyle.text
+                      }}
+                    >
+                      {order.paymentStatus}
+                    </Box>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box
+                      sx={{
+                        display: "inline-block",
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: "50px",
+                        fontSize: "0.75rem",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
                         bgcolor: statusStyle.bg,
                         color: statusStyle.text
                       }}
                     >
                       {order.status}
                     </Box>
+                  </TableCell>
+                  <TableCell sx={{ color: "#475569", fontSize: "0.9rem" }}>
+                    {new Date(order.date).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
                   </TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>

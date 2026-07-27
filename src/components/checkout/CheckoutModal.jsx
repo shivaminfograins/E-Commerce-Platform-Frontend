@@ -4,6 +4,7 @@ import "./checkout.css";
 import addressService from "../../services/addressService";
 import orderService from "../../services/orderService";
 import paymentService from "../../services/paymentService";
+import couponService from "../../services/couponService";
 
 /* ── script helper ─────────────────────────────────────── */
 const loadRazorpayScript = () => {
@@ -142,6 +143,49 @@ function CheckoutModal({
   const [placedOrderInfo, setPlacedOrderInfo] = useState(null);
   const navigate = useNavigate();
 
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponSuccess, setCouponSuccess] = useState("");
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+
+  const discountAmount = appliedCoupon ? Number(appliedCoupon.discount_amount) : 0;
+  const adjustedTotal = Math.max(0, total - discountAmount);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    setValidatingCoupon(true);
+    setCouponError("");
+    setCouponSuccess("");
+    try {
+      const response = await couponService.validateCoupon(couponCode);
+      if (response.data.success) {
+        setAppliedCoupon(response.data);
+        setCouponSuccess(`Coupon '${response.data.coupon.code}' applied! You save ₹${response.data.discount_amount}`);
+      } else {
+        setCouponError(response.data.message || "Failed to apply coupon.");
+      }
+    } catch (err) {
+      console.error(err);
+      setCouponError(err.response?.data?.message || "Invalid coupon code.");
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponError("");
+    setCouponSuccess("");
+  };
+
+  useEffect(() => {
+    if (!open) {
+      handleRemoveCoupon();
+    }
+  }, [open]);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAddr, setNewAddr] = useState({
     full_name: "",
@@ -255,6 +299,7 @@ function CheckoutModal({
         address: selectedAddr,
         payment_method: payment,
         items: orderItems,
+        coupon_code: appliedCoupon ? appliedCoupon.coupon.code : "",
       });
 
       if (response.data.success) {
@@ -388,7 +433,7 @@ function CheckoutModal({
                 <strong>
                   ₹
                   {Number(
-                    placedOrderInfo?.total_amount || total,
+                    placedOrderInfo?.total_amount || adjustedTotal,
                   ).toLocaleString()}
                 </strong>
               </div>
@@ -721,6 +766,83 @@ function CheckoutModal({
                   </div>
                 )}
 
+                {/* ─ Coupon Code Section ─ */}
+                <div className="co-coupon-section" style={{ margin: "16px 0", borderTop: "1px dashed #cbd5e1", borderBottom: "1px dashed #cbd5e1", padding: "16px 0" }}>
+                  <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#475569", marginBottom: "8px" }}>
+                    Have a promo code or coupon?
+                  </label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      placeholder="Enter Coupon Code (e.g. SAVE10)"
+                      value={couponCode}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value);
+                        setCouponError("");
+                        setCouponSuccess("");
+                      }}
+                      disabled={validatingCoupon || appliedCoupon}
+                      style={{
+                        flex: 1,
+                        padding: "8px 12px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        outline: "none",
+                        textTransform: "uppercase",
+                        background: appliedCoupon ? "#f1f5f9" : "#ffffff"
+                      }}
+                    />
+                    {appliedCoupon ? (
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        style={{
+                          padding: "8px 16px",
+                          background: "#ef4444",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          fontWeight: "500",
+                          fontSize: "14px"
+                        }}
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleApplyCoupon}
+                        disabled={validatingCoupon || !couponCode.trim()}
+                        style={{
+                          padding: "8px 16px",
+                          background: "#6c63ff",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          fontWeight: "500",
+                          fontSize: "14px",
+                          opacity: (validatingCoupon || !couponCode.trim()) ? 0.6 : 1
+                        }}
+                      >
+                        {validatingCoupon ? "Applying..." : "Apply"}
+                      </button>
+                    )}
+                  </div>
+                  {couponError && (
+                    <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "6px", fontWeight: "500", margin: "6px 0 0 0" }}>
+                      ❌ {couponError}
+                    </p>
+                  )}
+                  {couponSuccess && (
+                    <p style={{ color: "#10b981", fontSize: "12px", marginTop: "6px", fontWeight: "500", margin: "6px 0 0 0" }}>
+                      🎉 {couponSuccess}
+                    </p>
+                  )}
+                </div>
+
                 <div className="co-summary-rows">
                   <div className="co-summary-row">
                     <span>Subtotal</span>
@@ -732,9 +854,15 @@ function CheckoutModal({
                       {shipping === 0 ? "FREE" : `₹${shipping}`}
                     </span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="co-summary-row" style={{ color: "#10b981", fontWeight: "500" }}>
+                      <span>Discount ({appliedCoupon.coupon.code})</span>
+                      <span>-₹{Number(appliedCoupon.discount_amount).toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="co-summary-row co-summary-row--total">
                     <span>Total</span>
-                    <span>₹{total.toLocaleString()}</span>
+                    <span>₹{adjustedTotal.toLocaleString()}</span>
                   </div>
                 </div>
               </section>
@@ -745,7 +873,7 @@ function CheckoutModal({
               <div className="co-footer__meta">
                 <p className="co-footer__total-label">You Pay</p>
                 <p className="co-footer__total-val">
-                  ₹{total.toLocaleString()}
+                  ₹{adjustedTotal.toLocaleString()}
                 </p>
               </div>
               <button
