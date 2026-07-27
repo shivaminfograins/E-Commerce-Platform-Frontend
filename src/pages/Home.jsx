@@ -12,6 +12,8 @@ import PromotionBanner from "../components/PromotionBanner";
 import BrandShowcase from "../components/BrandShowcase";
 import Testimonials from "../components/Testimonials";
 import FloatingWidgets from "../components/FloatingWidgets";
+import CouponSection from "../components/CouponSection";
+
 
 // import services
 import categoryService from "../services/categoryService";
@@ -418,6 +420,9 @@ function Home({
             setSelectedCategory={setSelectedCategory}
           />
         )}
+
+        {!isSearching && <CouponSection />}
+
 
         {loadingProducts && (
           <p className="section-message">Loading products...</p>
