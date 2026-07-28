@@ -124,11 +124,11 @@ function ProductDetails({
 
         const relatedItems =
           Array.isArray(categoryProductsResponse) &&
-          categoryProductsResponse.length
+            categoryProductsResponse.length
             ? categoryProductsResponse
             : categoryProductsResponse.results ||
-              categoryProductsResponse.products ||
-              [];
+            categoryProductsResponse.products ||
+            [];
 
         const normalizedRelated = relatedItems
           .filter((item) => item.id !== data.id)
@@ -191,7 +191,7 @@ function ProductDetails({
     cartCount,
     wishlistCount: wishlist.length,
     search: "",
-    setSearch: () => {},
+    setSearch: () => { },
     onCartClick: () => navigate("/cart"),
     onWishlistClick: () => navigate("/wishlist"),
     user,
@@ -223,9 +223,11 @@ function ProductDetails({
   }
 
   // ── Handlers ───────────────────────────────────────────────
+  const activeVariant = selectedVariant || variants[0] || null;
+
   const handleIncrease = () => {
-    if (!selectedVariant) return;
-    setQuantity((q) => Math.min(q + 1, selectedVariant.stock));
+    if (!activeVariant) return;
+    setQuantity((q) => Math.min(q + 1, activeVariant.stock));
   };
 
   const handleDecrease = () => {
@@ -244,12 +246,12 @@ function ProductDetails({
    * On success, App.jsx's updateCartStateFromBackend refreshes cartItems.
    */
   const handleAddToCart = async () => {
-    if (!selectedVariant || addingToCart) return;
+    if (!activeVariant || addingToCart) return;
     setAddingToCart(true);
     setCartFeedback("");
     try {
       const response = await cartService.addToCart(
-        selectedVariant.id,
+        activeVariant.id,
         quantity,
       );
       // Propagate backend state to App so Navbar badge + Cart page update
@@ -267,7 +269,7 @@ function ProductDetails({
   };
 
   const handleBuyNow = async () => {
-    if (!selectedVariant || addingToCart) return;
+    if (!activeVariant || addingToCart) return;
     await handleAddToCart();
     navigate("/cart");
   };
@@ -281,10 +283,10 @@ function ProductDetails({
 
       <div className="container">
         <div className="product-details-layout">
-          <ProductGallery 
-            product={product} 
-            variants={variants} 
-            selectedVariant={selectedVariant} 
+          <ProductGallery
+            product={product}
+            variants={variants}
+            selectedVariant={selectedVariant}
           />
 
           <div>
@@ -322,8 +324,8 @@ function ProductDetails({
           products={relatedProducts}
           currentProductId={product.id}
           cart={cart}
-          onAdd={() => {}}
-          onRemove={() => {}}
+          onAdd={() => { }}
+          onRemove={() => { }}
         />
       </div>
 

@@ -172,48 +172,6 @@ function ProductGallery({ product = {}, variants = [], selectedVariant = null })
             <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#475569" }}>
               {activeIdx + 1} / {galleryImages.length}
             </span>
-
-            {/* Action Buttons */}
-            <div style={{ display: "flex", gap: "10px" }}>
-              <button
-                type="button"
-                onClick={() => alert("Hover over the image to activate the Zoom Lens Magnifier!")}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                  backgroundColor: "#ffffff",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
-                }}
-              >
-                🔍 Zoom
-              </button>
-              <button
-                type="button"
-                onClick={() => setLightboxOpen(true)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "8px",
-                  border: "1px solid #e2e8f0",
-                  backgroundColor: "#ffffff",
-                  fontSize: "0.78rem",
-                  fontWeight: 700,
-                  color: "#0f172a",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
-                }}
-              >
-                ⛶ Fullscreen
-              </button>
-            </div>
           </div>
         )}
       </div>

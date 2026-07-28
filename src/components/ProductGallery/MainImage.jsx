@@ -13,7 +13,7 @@ function MainImage({ src, alt, onClick, onDoubleClick, onWheel }) {
   useEffect(() => {
     setLoading(true);
     setError(false);
-    
+
     // Check if the image is already cached/complete
     if (imgRef.current && imgRef.current.complete) {
       setLoading(false);
@@ -24,7 +24,7 @@ function MainImage({ src, alt, onClick, onDoubleClick, onWheel }) {
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    
+
     // Calculate cursor position relative to the image container
     let x = e.clientX - rect.left;
     let y = e.clientY - rect.top;

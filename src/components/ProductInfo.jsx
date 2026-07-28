@@ -23,11 +23,12 @@ function ProductInfo({
   onAddToCart,
   onBuyNow,
 }) {
-  const canAddToCart = !!selectedVariant;
-  const displayPrice = selectedVariant
-    ? Number(selectedVariant.price)
+  const activeVariant = selectedVariant || variants[0] || null;
+  const canAddToCart = !!activeVariant;
+  const displayPrice = activeVariant
+    ? Number(activeVariant.price)
     : product.price;
-  const stockLeft = selectedVariant?.stock ?? null;
+  const stockLeft = activeVariant?.stock ?? null;
 
   return (
     <div className="product-info-box">
@@ -79,16 +80,16 @@ function ProductInfo({
         <div className="variant-selector">
           <p className="variant-label">
             Select Variant
-            {selectedVariant && (
+            {activeVariant && (
               <span className="variant-selected-name">
-                {" "}— {selectedVariant.name}
+                {" "}— {activeVariant.name}
               </span>
             )}
           </p>
 
           <div className="variant-buttons">
             {variants.map((v) => {
-              const isSelected = selectedVariant?.id === v.id;
+              const isSelected = activeVariant?.id === v.id;
               const isOutOfStock = v.stock === 0;
               return (
                 <button
@@ -115,10 +116,10 @@ function ProductInfo({
           </div>
 
           {/* SKU + stock badge */}
-          {selectedVariant && (
+          {activeVariant && (
             <div className="variant-meta-row">
               <span className="variant-sku-label">
-                SKU:&nbsp;<strong>{selectedVariant.sku}</strong>
+                SKU:&nbsp;<strong>{activeVariant.sku}</strong>
               </span>
               {stockLeft !== null && (
                 <span
@@ -138,11 +139,6 @@ function ProductInfo({
                 </span>
               )}
             </div>
-          )}
-
-          {/* Hint when no variant is selected yet */}
-          {!selectedVariant && (
-            <p className="variant-hint">⬆ Please select a variant to continue.</p>
           )}
         </div>
       )}
