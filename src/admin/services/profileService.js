@@ -21,6 +21,7 @@ const profileService = {
       username: data.name,
       email: data.email,
       phone: data.phone,
+      avatar: data.avatar,
       date_of_birth: "1990-01-01" // Default required fallback
     };
     const response = await api.put("/admin/profile/", payload);

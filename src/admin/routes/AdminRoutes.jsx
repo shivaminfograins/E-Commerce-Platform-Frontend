@@ -19,6 +19,7 @@ import OrderDetails from "../pages/Orders/OrderDetails";
 import Reports from "../pages/Reports/Reports";
 import SettingsPage from "../pages/Settings/SettingsPage";
 import Coupons from "../pages/Coupons/Coupons";
+import Notifications from "../pages/Notifications/Notifications";
 
 function AdminRoutes() {
   return (
@@ -46,6 +47,7 @@ function AdminRoutes() {
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="coupons" element={<Coupons />} />
+          <Route path="notifications" element={<Notifications />} />
           {/* Catch-all admin routes to redirect to dashboard */}
           <Route path="" element={<Navigate to="dashboard" replace />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />

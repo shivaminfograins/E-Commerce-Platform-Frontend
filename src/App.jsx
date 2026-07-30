@@ -19,6 +19,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
 import MyOrders from "./pages/MyOrders";
+import OrderDetail from "./pages/OrderDetail";
 import AddressBook from "./pages/AddressBook";
 import AdminRoutes from "./admin/routes/AdminRoutes";
 
@@ -365,6 +366,7 @@ function ScrollToTop() {
         <Route path="/wishlist" element={<Wishlist {...sharedProps} />} />
         <Route path="/profile" element={<Profile {...sharedProps} />} />
         <Route path="/orders" element={<MyOrders {...sharedProps} />} />
+        <Route path="/orders/:orderId" element={<OrderDetail {...sharedProps} />} />
         <Route path="/address-book" element={<AddressBook {...sharedProps} />} />
         <Route path="/terms" element={<TermsAndConditions {...sharedProps} />} />
         <Route path="/faq" element={<FAQ {...sharedProps} />} />

@@ -45,8 +45,17 @@ export function AdminAuthProvider({ children }) {
     localStorage.removeItem("shopease_admin_user");
   };
 
+  const updateAdminUser = (updatedData) => {
+    setAdminUser((prev) => {
+      if (!prev) return null;
+      const newUser = { ...prev, ...updatedData };
+      localStorage.setItem("shopease_admin_user", JSON.stringify(newUser));
+      return newUser;
+    });
+  };
+
   return (
-    <AdminAuthContext.Provider value={{ adminUser, loading, login, logout }}>
+    <AdminAuthContext.Provider value={{ adminUser, updateAdminUser, setAdminUser, loading, login, logout }}>
       {children}
     </AdminAuthContext.Provider>
   );

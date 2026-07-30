@@ -4,7 +4,6 @@ import MainLayout from "../layouts/MainLayout";
 import OrderFilter from "../components/orders/OrderFilter";
 import OrderList from "../components/orders/OrderList";
 import EmptyOrders from "../components/orders/EmptyOrders";
-import OrderDetailsModal from "../components/orders/OrderDetailsModal";
 import orderService from "../services/orderService";
 
 function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
@@ -21,7 +20,6 @@ function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     page_size: 10,
@@ -75,9 +73,8 @@ function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
   };
 
   const handleCancelSuccess = () => {
-    // Refresh list and clear modal
+    // Refresh list
     fetchOrders();
-    setSelectedOrderId(null);
   };
 
   if (!user) return null;
@@ -121,7 +118,7 @@ function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
                 quantity: o.item_count,
                 price: o.total_amount,
               }))} 
-              onViewDetails={(order) => setSelectedOrderId(order.id)} 
+              onViewDetails={(order) => navigate(`/orders/${order.id}`)} 
             />
             
             {/* Pagination Controls */}
@@ -152,13 +149,7 @@ function MyOrders({ cart = {}, wishlist = [], user, setUser }) {
         )}
       </div>
 
-      {selectedOrderId && (
-        <OrderDetailsModal
-          orderId={selectedOrderId}
-          onClose={() => setSelectedOrderId(null)}
-          onCancelSuccess={handleCancelSuccess}
-        />
-      )}
+      {/* OrderDetailsModal removed, details now open in dedicated page */}
     </MainLayout>
   );
 }
