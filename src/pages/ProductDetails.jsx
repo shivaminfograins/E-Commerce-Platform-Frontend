@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 import { productService } from "../services/productService";
 import cartService from "../services/cartService";
@@ -9,6 +9,7 @@ import ProductInfo from "../components/ProductInfo";
 import ProductFeatures from "../components/ProductFeatures";
 import ProductDescription from "../components/ProductDescription";
 import RelatedProducts from "../components/RelatedProducts";
+import ReviewSection from "../components/reviews/ReviewSection";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -36,6 +37,9 @@ function ProductDetails({
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const autoOpenReview = queryParams.get("writeReview") === "true";
 
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState(null);
@@ -327,6 +331,8 @@ function ProductDetails({
           onAdd={() => { }}
           onRemove={() => { }}
         />
+
+        <ReviewSection productId={product.id} user={user} autoOpenReview={autoOpenReview} />
       </div>
 
       <Footer />

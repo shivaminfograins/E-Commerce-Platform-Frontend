@@ -141,7 +141,7 @@ function OrderDetailItems({ order, onBuyAgain }) {
                     Buy Again
                   </button>
                   <button
-                    onClick={() => alert(`Review panel for ${item.product_name} is under development.`)}
+                    onClick={() => navigate(`/product/${item.product_id}?writeReview=true`)}
                     style={{
                       background: "#ffffff",
                       color: "#4f46e5",
