@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import WriteReviewForm from "./WriteReviewForm";
 
-function ReviewSection({ productId, user, autoOpenReview }) {
+function ReviewSection({ productId, user, autoOpenReview, onSummaryUpdate }) {
   const [reviews, setReviews] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +22,9 @@ function ReviewSection({ productId, user, autoOpenReview }) {
         setReviews(response.data.results);
         setSummary(response.data.summary);
         setTotalPages(response.data.total_pages || 1);
+        if (onSummaryUpdate) {
+          onSummaryUpdate(response.data.summary);
+        }
       }
     } catch (err) {
       console.error("Failed to load reviews:", err);

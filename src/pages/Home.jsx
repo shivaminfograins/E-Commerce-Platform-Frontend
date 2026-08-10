@@ -193,8 +193,8 @@ function Home({
             price,
             originalPrice,
             discountPercent,
-            rating: product.rating || 4.0 + (product.id % 10) * 0.1,
-            reviewsCount: product.reviewsCount || 12 + product.id * 7,
+            rating: product.average_rating !== undefined && product.average_rating !== null ? Number(product.average_rating) : (product.rating || 4.0 + (product.id % 10) * 0.1),
+            reviewsCount: product.total_reviews !== undefined && product.total_reviews !== null ? product.total_reviews : (product.reviewsCount || 12 + product.id * 7),
             badge:
               product.id % 5 === 0
                 ? "Best Seller"

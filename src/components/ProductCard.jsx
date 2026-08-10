@@ -158,7 +158,7 @@ function ProductCard({
           </div>
           <span className="rating-value">{rating}</span>
           <span className="reviews-count">
-            ({reviewsCount || Math.floor(rating * 18 + id)})
+            ({reviewsCount !== undefined && reviewsCount !== null ? reviewsCount : Math.floor(rating * 18 + id)})
           </span>
         </div>
 

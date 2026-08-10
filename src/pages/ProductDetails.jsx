@@ -111,8 +111,8 @@ function ProductDetails({
           price: Number(rawVariants[0]?.price || 0),
           originalPrice: Number(rawVariants[0]?.price || 0),
           discountPercent: 0,
-          rating: data.rating || 4.5,
-          reviewsCount: data.reviewsCount || 0,
+          rating: data.average_rating !== undefined && data.average_rating !== null ? Number(data.average_rating) : (data.rating || 4.5),
+          reviewsCount: data.total_reviews !== undefined && data.total_reviews !== null ? data.total_reviews : (data.reviewsCount || 0),
           image: imageUrl,
           description: data.description,
           badge: data.badge || "",
@@ -171,8 +171,8 @@ function ProductDetails({
               price: Number(item.variants?.[0]?.price || 0),
               originalPrice: Number(item.variants?.[0]?.price || 0),
               discountPercent: 0,
-              rating: item.rating || 4.5,
-              reviewsCount: item.reviewsCount || 0,
+              rating: item.average_rating !== undefined && item.average_rating !== null ? Number(item.average_rating) : (item.rating || 4.5),
+              reviewsCount: item.total_reviews !== undefined && item.total_reviews !== null ? item.total_reviews : (item.reviewsCount || 0),
               image: normalizeUrl(rawImg),
               badge: item.badge || "",
               variants: item.variants || [],
@@ -225,6 +225,19 @@ function ProductDetails({
       </>
     );
   }
+
+  const handleSummaryUpdate = (summary) => {
+    if (summary) {
+      setProduct((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          rating: summary.average_rating,
+          reviewsCount: summary.total_reviews,
+        };
+      });
+    }
+  };
 
   // ── Handlers ───────────────────────────────────────────────
   const activeVariant = selectedVariant || variants[0] || null;
@@ -332,7 +345,12 @@ function ProductDetails({
           onRemove={() => { }}
         />
 
-        <ReviewSection productId={product.id} user={user} autoOpenReview={autoOpenReview} />
+        <ReviewSection
+          productId={product.id}
+          user={user}
+          autoOpenReview={autoOpenReview}
+          onSummaryUpdate={handleSummaryUpdate}
+        />
       </div>
 
       <Footer />
