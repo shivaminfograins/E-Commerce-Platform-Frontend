@@ -6,11 +6,10 @@ function InsightsAndInventory({ categories = [], brands = [], lowStock = [], out
   const navigate = useNavigate();
   const [activeInventoryTab, setActiveInventoryTab] = useState(0);
 
-  // Group low stock, out of stock, and top products
+  // Group low stock, out of stock
   const inventoryTabs = [
     { label: "Low Stock", data: lowStock },
-    { label: "Out of Stock", data: outOfStock },
-    { label: "Recently Added", data: topProducts.slice(0, 5) }
+    { label: "Out of Stock", data: outOfStock }
   ];
 
   // Dummy categories distribution fallback if empty
@@ -75,25 +74,7 @@ function InsightsAndInventory({ categories = [], brands = [], lowStock = [], out
             </Typography>
             {catData.slice(0, 4).map(c => renderInsightBar(c.name, c.value, c.total, "#10b981"))}
 
-            <Box sx={{ mt: 4 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#64748b", mb: 2, textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
-                Top Selling Brands
-              </Typography>
-              <Grid container spacing={2}>
-                {(brands.length > 0 ? brands : [{ name: "Razer", count: 12 }, { name: "Sony", count: 8 }, { name: "Apple", count: 7 }]).slice(0, 3).map((b, idx) => (
-                  <Grid item xs={4} key={b.name || b.brand_name || idx}>
-                    <Box sx={{ p: 2, bgcolor: "#f8fafc", borderRadius: "12px", textAlign: "center", border: "1px solid #f1f5f9" }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1e293b" }}>
-                        {b.name || b.brand_name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {b.count || b.sales || 0} Sales
-                      </Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
+
           </CardContent>
         </Card>
       </Grid>
@@ -136,7 +117,6 @@ function InsightsAndInventory({ categories = [], brands = [], lowStock = [], out
               >
                 <Tab label="Low Stock" />
                 <Tab label="Out of Stock" />
-                <Tab label="Recently Added" />
               </Tabs>
             </Box>
 

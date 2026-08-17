@@ -11,9 +11,7 @@ import { useNavigate } from "react-router-dom";
 // Subcomponents
 import KPISection from "../../components/Dashboard/KPISection";
 import InsightsAndInventory from "../../components/Dashboard/InsightsAndInventory";
-import RecentActivityFeed from "../../components/Dashboard/RecentActivityFeed";
 import QuickActionsPanel from "../../components/Dashboard/QuickActionsPanel";
-import ChartCard from "../../components/Dashboard/ChartCard";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -25,10 +23,16 @@ function Dashboard() {
   const [ordersTrend, setOrdersTrend] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeChartTab, setActiveChartTab] = useState("revenue");
 
   // Filters State
-  const [timeRange, setTimeRange] = useState("yearly");
-  const [particularDate, setParticularDate] = useState(new Date().toISOString().split("T")[0]);
+  const [timeRange, setTimeRange] = useState("last_30_days");
+  const [startDate, setStartDate] = useState(
+    new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  );
+  const [endDate, setEndDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
   // Export Menu State
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
@@ -36,7 +40,7 @@ function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [timeRange, particularDate]);
+  }, [timeRange, startDate, endDate]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -44,10 +48,11 @@ function Dashboard() {
     try {
       const params = { range: timeRange };
       if (timeRange === "custom") {
-        params.date = particularDate;
+        params.start_date = startDate;
+        params.end_date = endDate;
       }
       const [dashboardRes, revenueRes, salesRes, ordersRes] = await Promise.all([
-        api.get("/admin/dashboard/"),
+        api.get("/admin/dashboard/", { params }),
         api.get("/admin/reports/revenue/", { params }).catch(() => ({ data: { trend: [] } })),
         api.get("/admin/reports/sales/", { params }).catch(() => ({ data: { trend: [] } })),
         api.get("/admin/reports/orders/", { params }).catch(() => ({ data: { trend: [] } }))
@@ -237,64 +242,219 @@ function Dashboard() {
               onChange={(e) => setTimeRange(e.target.value)}
               sx={{ borderRadius: "8px", bgcolor: "background.paper", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}
             >
-              <MenuItem value="yearly">Last 12 Months</MenuItem>
-              <MenuItem value="monthly">Last 30 Days</MenuItem>
-              <MenuItem value="weekly">Last 7 Days</MenuItem>
-              <MenuItem value="custom">Particular Day</MenuItem>
+              <MenuItem value="today">Today</MenuItem>
+              <MenuItem value="last_7_days">Last 7 Days</MenuItem>
+              <MenuItem value="last_30_days">Last 30 Days</MenuItem>
+              <MenuItem value="this_month">This Month</MenuItem>
+              <MenuItem value="last_month">Last Month</MenuItem>
+              <MenuItem value="this_year">This Year</MenuItem>
+              <MenuItem value="custom">Custom Date Range</MenuItem>
             </Select>
           </FormControl>
           {timeRange === "custom" && (
-            <TextField
-              type="date"
-              size="small"
-              value={particularDate}
-              onChange={(e) => setParticularDate(e.target.value)}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "background.paper" } }}
-            />
+            <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+              <TextField
+                type="date"
+                label="Start Date"
+                size="small"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "background.paper" } }}
+              />
+              <TextField
+                type="date"
+                label="End Date"
+                size="small"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "background.paper" } }}
+              />
+            </Box>
           )}
         </Box>
       </Box>
 
+      {/* SECTION: Action Required */}
+      {stats?.action_required && stats.action_required.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#e11d48", mb: 2, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+            🚨 Action Required
+          </Typography>
+          <Grid container spacing={2}>
+            {stats.action_required.map((act, index) => (
+              <Grid item xs={12} sm={6} md={4} key={index}>
+                <Card 
+                  sx={{ 
+                    borderRadius: "16px", 
+                    border: `1px solid ${act.severity === "danger" ? "#fecdd3" : "#fef3c7"}`, 
+                    bgcolor: act.severity === "danger" ? "#fff5f5" : "#fffbeb",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "100%",
+                    justifyContent: "space-between"
+                  }}
+                >
+                  <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 }, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 850, color: act.severity === "danger" ? "#991b1b" : "#92400e" }}>
+                        {act.message}
+                      </Typography>
+                    </Box>
+                    <Button 
+                      variant="contained" 
+                      size="small" 
+                      color={act.severity === "danger" ? "error" : "warning"}
+                      onClick={() => navigate(act.link)}
+                      sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
+                    >
+                      {act.button_text}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
       {/* SECTION 1: Business KPI Cards & Targets */}
       <KPISection stats={stats} />
+
+      {/* SECTION: Order Status Overview */}
+      {stats?.order_status_summary && stats.order_status_summary.length > 0 && (
+        <Card sx={{ borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.06)", boxShadow: "0 4px 20px rgba(15,23,42,0.03)", mb: 4 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "#1e293b", mb: 3 }}>
+              📈 Order Fulfillment Pipeline
+            </Typography>
+            <Grid container spacing={2}>
+              {stats.order_status_summary.map((item) => {
+                const displayLabel = item.status.charAt(0).toUpperCase() + item.status.slice(1);
+                let statusColor = "#64748b"; // default neutral
+                let bg = "#f1f5f9";
+                if (item.status === "pending") { statusColor = "#f59e0b"; bg = "#fef3c7"; }
+                else if (item.status === "confirmed" || item.status === "processing" || item.status === "packed") { statusColor = "#3b82f6"; bg = "#dbeafe"; }
+                else if (item.status === "shipped") { statusColor = "#8b5cf6"; bg = "#ede9fe"; }
+                else if (item.status === "delivered") { statusColor = "#10b981"; bg = "#d1fae5"; }
+                else if (item.status === "cancelled" || item.status === "refunded") { statusColor = "#ef4444"; bg = "#fee2e2"; }
+
+                return (
+                  <Grid item xs={6} sm={4} md={2} key={item.status}>
+                    <Box 
+                      onClick={() => navigate(`/admin/orders?status=${item.status}`)}
+                      sx={{ 
+                        p: 2.5, 
+                        borderRadius: "12px", 
+                        bgcolor: bg, 
+                        textAlign: "center", 
+                        cursor: "pointer", 
+                        border: "1px solid transparent",
+                        transition: "all 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-3px)",
+                          borderColor: statusColor,
+                          boxShadow: `0 4px 12px ${statusColor}15`
+                        }
+                      }}
+                    >
+                      <Typography variant="h5" sx={{ fontWeight: 800, color: statusColor }}>
+                        {item.count}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569" }}>
+                        {displayLabel}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
 
       {/* SECTION 9: Quick Actions Shortcut Panel */}
       <QuickActionsPanel />
 
-      {/* SECTION 2: Analytics Charts */}
+      {/* SALES & ORDERS OVERVIEW */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
-          <ChartCard title="Revenue Analytics" subtitle="Gross monthly store income performance metrics">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={combinedTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]} />
-                <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#revenueGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </Grid>
+          <Card sx={{ borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.06)", boxShadow: "0 4px 20px rgba(15,23,42,0.03)" }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: "#1e293b" }}>
+                    📈 Sales & Orders Overview
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Monitor store performance and checkout transactions
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 1, bgcolor: "#f1f5f9", p: 0.5, borderRadius: "8px" }}>
+                  <Button 
+                    variant={activeChartTab === "revenue" ? "contained" : "text"} 
+                    size="small"
+                    onClick={() => setActiveChartTab("revenue")}
+                    sx={{ 
+                      textTransform: "none", 
+                      fontWeight: 700, 
+                      borderRadius: "6px",
+                      boxShadow: activeChartTab === "revenue" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                      bgcolor: activeChartTab === "revenue" ? "background.paper" : "transparent",
+                      color: activeChartTab === "revenue" ? "text.primary" : "text.secondary"
+                    }}
+                  >
+                    Revenue
+                  </Button>
+                  <Button 
+                    variant={activeChartTab === "orders" ? "contained" : "text"} 
+                    size="small"
+                    onClick={() => setActiveChartTab("orders")}
+                    sx={{ 
+                      textTransform: "none", 
+                      fontWeight: 700, 
+                      borderRadius: "6px",
+                      boxShadow: activeChartTab === "orders" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                      bgcolor: activeChartTab === "orders" ? "background.paper" : "transparent",
+                      color: activeChartTab === "orders" ? "text.primary" : "text.secondary"
+                    }}
+                  >
+                    Orders
+                  </Button>
+                </Box>
+              </Box>
 
-        <Grid item xs={12}>
-          <ChartCard title="Order Trends" subtitle="Checkout transactions completed over selected timeline">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={combinedTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="orders" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
+              <Box sx={{ height: 350 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  {activeChartTab === "revenue" ? (
+                    <AreaChart data={combinedTrendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
+                      <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, "Revenue"]} />
+                      <Area type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#revenueGrad)" />
+                    </AreaChart>
+                  ) : (
+                    <LineChart data={combinedTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
+                      <Tooltip formatter={(value) => [value, "Orders"]} />
+                      <Line type="monotone" dataKey="orders" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
+              </Box>
+            </CardContent>
+          </Card>
         </Grid>
       </Grid>
 
@@ -306,9 +466,6 @@ function Dashboard() {
         outOfStock={outOfStockProducts}
         topProducts={topSellingProductsList}
       />
-
-      {/* SECTION 8 & 10: Recent Activity & Notifications Panel */}
-      <RecentActivityFeed recentOrders={mappedRecentOrders} lowStock={lowStockProducts} />
 
       {/* SECTION 5: Recent Orders Table */}
       <Card sx={{ borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.06)", boxShadow: "0 4px 20px rgba(15,23,42,0.03)", mb: 4 }}>
@@ -372,49 +529,7 @@ function Dashboard() {
         </Paper>
       </Card>
 
-      {/* SECTION 6: Latest Customers */}
-      <Card sx={{ borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.06)", boxShadow: "0 4px 20px rgba(15,23,42,0.03)", mb: 4 }}>
-        <Box sx={{ p: 3, borderBottom: "1px solid #f1f5f9" }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "#1e293b" }}>
-            👥 Latest Registered Customers
-          </Typography>
-        </Box>
-        <Table sx={{ minWidth: 800 }}>
-          <TableHead>
-            <TableRow sx={{ "& th": { fontWeight: 700, color: "#475569", bgcolor: "#f8fafc" } }}>
-              <TableCell>Customer Profile</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Joined Date</TableCell>
-              <TableCell>Orders Count</TableCell>
-              <TableCell>Total Spending</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {mappedRecentCustomers.slice(0, 5).map((c) => (
-              <TableRow key={c.id} hover>
-                <TableCell>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Avatar sx={{ width: 32, height: 32, bgcolor: "#3b82f6", fontWeight: 700 }}>
-                      {c.name[0].toUpperCase()}
-                    </Avatar>
-                    <Typography sx={{ fontWeight: 700, color: "text.primary" }}>{c.name}</Typography>
-                  </Box>
-                </TableCell>
-                <TableCell color="text.secondary">{c.email}</TableCell>
-                <TableCell>{c.joined}</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>{c.orders} Orders</TableCell>
-                <TableCell sx={{ fontWeight: 800, color: "#10b981" }}>{c.spending}</TableCell>
-                <TableCell align="right">
-                  <Button variant="outlined" size="small" onClick={() => navigate("/admin/customers")} sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 700 }}>
-                    View Customer
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+
 
       {/* SECTION 7: Top Selling Products */}
       <Card sx={{ borderRadius: "16px", border: "1px solid rgba(15, 23, 42, 0.06)", boxShadow: "0 4px 20px rgba(15,23,42,0.03)" }}>

@@ -8,10 +8,8 @@ function QuickActionsPanel() {
   const actions = [
     { label: "Add Product", path: "/admin/products/create", icon: "📦", color: "#3b82f6" },
     { label: "Add Category", path: "/admin/categories", icon: "📂", color: "#10b981" },
-    { label: "Add Brand", path: "/admin/brands", icon: "🏷️", color: "#f59e0b" },
-    { label: "Create Coupon", path: "/admin/settings", icon: "🎫", color: "#8b5cf6" },
-    { label: "View Orders", path: "/admin/orders", icon: "🚚", color: "#ef4444" },
-    { label: "View Reports", path: "/admin/reports", icon: "📈", color: "#06b6d4" }
+    { label: "Manage Inventory", path: "/admin/products", icon: "🛡️", color: "#f59e0b" },
+    { label: "View Pending Orders", path: "/admin/orders?status=pending", icon: "🚚", color: "#ef4444" }
   ];
 
   return (
@@ -34,7 +32,7 @@ function QuickActionsPanel() {
         </Typography>
         <Grid container spacing={2}>
           {actions.map((act) => (
-            <Grid item xs={6} sm={4} md={2} key={act.label}>
+            <Grid item xs={6} sm={3} key={act.label}>
               <Button
                 variant="text"
                 fullWidth
