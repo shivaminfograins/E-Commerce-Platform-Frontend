@@ -8,6 +8,7 @@ import RecentOrders from "../components/account/RecentOrders";
 import profileService from "../services/profileService";
 import addressService from "../services/addressService";
 import orderService from "../services/orderService";
+import vendorService from "../services/vendorService";
 
 function Profile({ cart = {}, wishlist = [], user, setUser }) {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ function Profile({ cart = {}, wishlist = [], user, setUser }) {
   const [loadingAddresses, setLoadingAddresses] = useState(true);
   const [ordersCount, setOrdersCount] = useState(0);
   const [addressesCount, setAddressesCount] = useState(0);
+  const [vendorProfile, setVendorProfile] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -63,10 +65,20 @@ function Profile({ cart = {}, wishlist = [], user, setUser }) {
       }
     };
 
+    const loadVendorStatus = async () => {
+      try {
+        const profile = await vendorService.getVendorProfile();
+        setVendorProfile(profile);
+      } catch (err) {
+        // No application exists
+      }
+    };
+
     if (user) {
       loadProfile();
       loadAddresses();
       loadOrdersCount();
+      loadVendorStatus();
     }
   }, [setUser, user?.id]);
 
@@ -85,6 +97,52 @@ function Profile({ cart = {}, wishlist = [], user, setUser }) {
         <h1 className="page-title" style={{ marginBottom: "30px", fontWeight: "800", color: "#0f172a" }}>My Account</h1>
 
         <ProfileCard user={user} onUserUpdate={setUser} />
+
+        {/* Vendor/Seller Integration Card */}
+        <div style={{
+          background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+          borderRadius: "20px",
+          padding: "30px 40px",
+          color: "#f8fafc",
+          marginBottom: "40px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          boxShadow: "0 10px 25px rgba(15, 23, 42, 0.15)",
+        }}>
+          <div>
+            <h2 style={{ margin: "0 0 8px 0", fontSize: "20px", fontWeight: "800" }}>
+              {!vendorProfile && "Start Selling on ShopEase"}
+              {vendorProfile?.status === "PENDING" && "Seller Application Pending"}
+              {vendorProfile?.status === "APPROVED" && "Vendor Store Active"}
+              {vendorProfile?.status === "REJECTED" && "Seller Application Rejected"}
+              {vendorProfile?.status === "SUSPENDED" && "Seller Account Suspended"}
+            </h2>
+            <p style={{ margin: 0, fontSize: "14px", color: "#94a3b8" }}>
+              {!vendorProfile && "Create your store, upload verification documents, and start earning."}
+              {vendorProfile?.status === "PENDING" && `Your application for "${vendorProfile.business_name}" is currently under review.`}
+              {vendorProfile?.status === "APPROVED" && `Manage your seller profile and details for "${vendorProfile.store_name}".`}
+              {vendorProfile?.status === "REJECTED" && `Reason: ${vendorProfile.rejection_reason || "Invalid documentation. Please edit and resubmit."}`}
+              {vendorProfile?.status === "SUSPENDED" && "Your seller privileges are suspended. Please contact platform support."}
+            </p>
+          </div>
+          {vendorProfile?.status !== "SUSPENDED" && (
+            <Link to="/become-seller" style={{
+              background: vendorProfile?.status === "REJECTED" ? "#dc2626" : "#7c3aed",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "10px",
+              fontWeight: "700",
+              textDecoration: "none",
+              transition: "all 0.2s ease"
+            }}>
+              {!vendorProfile && "Register Store"}
+              {vendorProfile?.status === "PENDING" && "View Details"}
+              {vendorProfile?.status === "APPROVED" && "Manage Store"}
+              {vendorProfile?.status === "REJECTED" && "Edit & Resubmit"}
+            </Link>
+          )}
+        </div>
 
         <AccountStats 
           cartCount={cartCount} 

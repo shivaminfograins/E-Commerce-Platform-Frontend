@@ -18,10 +18,16 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Wishlist from "./pages/Wishlist";
 import Profile from "./pages/Profile";
+import BecomeSeller from "./pages/BecomeSeller";
 import MyOrders from "./pages/MyOrders";
 import OrderDetail from "./pages/OrderDetail";
 import AddressBook from "./pages/AddressBook";
 import AdminRoutes from "./admin/routes/AdminRoutes";
+import VendorProtectedRoute from "./components/vendor/VendorProtectedRoute";
+import VendorLayout from "./layouts/VendorLayout";
+import VendorDashboard from "./pages/VendorDashboard";
+import VendorStoreProfile from "./pages/VendorStoreProfile";
+import VendorSuspended from "./pages/VendorSuspended";
 
 import api from "./api/axios";
 import cartService from "./services/cartService";
@@ -365,6 +371,7 @@ function ScrollToTop() {
         />
         <Route path="/wishlist" element={<Wishlist {...sharedProps} />} />
         <Route path="/profile" element={<Profile {...sharedProps} />} />
+        <Route path="/become-seller" element={<BecomeSeller {...sharedProps} />} />
         <Route path="/orders" element={<MyOrders {...sharedProps} />} />
         <Route path="/orders/:orderId" element={<OrderDetail {...sharedProps} />} />
         <Route path="/address-book" element={<AddressBook {...sharedProps} />} />
@@ -373,6 +380,18 @@ function ScrollToTop() {
         <Route path="/privacy" element={<PrivacyPolicy {...sharedProps} />} />
         <Route path="/returns" element={<ReturnsRefunds {...sharedProps} />} />
         <Route path="/admin/*" element={<AdminRoutes />} />
+        <Route
+          path="/vendor"
+          element={
+            <VendorProtectedRoute user={user}>
+              <VendorLayout user={user} setUser={setUser} />
+            </VendorProtectedRoute>
+          }
+        >
+          <Route path="dashboard" element={<VendorDashboard />} />
+          <Route path="profile" element={<VendorStoreProfile />} />
+        </Route>
+        <Route path="/vendor/suspended" element={<VendorSuspended />} />
       </Routes>
     </BrowserRouter>
   );

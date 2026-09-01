@@ -3,30 +3,37 @@ import api from "../api/axios";
 const orderService = {
   // Place a new order
   placeOrder: async (orderData) => {
-    // orderData: {
-    //   address: id,
-    //   payment_method: "cod"|"razorpay"|"stripe"|"upi",
-    //   items: [{variant_id, quantity}, ...],
-    //   coupon_code?,
-    //   notes?
-    // }
     return api.post("/orders/", orderData);
   },
 
   // Get paginated orders list
   getOrders: async (params = {}) => {
-    // params: { page, page_size, search, ordering }
     return api.get("/orders/list/", { params });
   },
 
-  // Get single order detail by ID
-  getOrderDetail: async (id) => {
-    return api.get(`/orders/${id}/`);
+  // Get single order detail by orderNumber or ID
+  getOrderDetail: async (orderNumber) => {
+    return api.get(`/orders/${orderNumber}/`);
   },
 
-  // Cancel an order
-  cancelOrder: async (id) => {
-    return api.patch(`/orders/${id}/cancel/`);
+  // Get shipment tracking info for multi-vendor order
+  getOrderTracking: async (orderNumber) => {
+    return api.get(`/orders/${orderNumber}/tracking/`);
+  },
+
+  // Cancel master order
+  cancelOrder: async (orderNumber) => {
+    return api.post(`/orders/${orderNumber}/cancel/`);
+  },
+
+  // Cancel specific vendor sub-order
+  cancelVendorOrder: async (orderNumber, vendorOrderNumber) => {
+    return api.post(`/orders/${orderNumber}/vendors/${vendorOrderNumber}/cancel/`);
+  },
+
+  // Get return requests for an order
+  getOrderReturns: async (orderNumber) => {
+    return api.get(`/orders/${orderNumber}/returns/`);
   },
 };
 

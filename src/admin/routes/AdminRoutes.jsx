@@ -21,6 +21,8 @@ import SettingsPage from "../pages/Settings/SettingsPage";
 import Coupons from "../pages/Coupons/Coupons";
 import Notifications from "../pages/Notifications/Notifications";
 import AdminReviews from "../pages/Reviews/AdminReviews";
+import VendorList from "../pages/Vendors/VendorList";
+import VendorDetail from "../pages/Vendors/VendorDetail";
 
 function AdminRoutes() {
   return (
@@ -50,6 +52,8 @@ function AdminRoutes() {
           <Route path="coupons" element={<Coupons />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="reviews" element={<AdminReviews />} />
+          <Route path="vendors" element={<VendorList />} />
+          <Route path="vendors/:id" element={<VendorDetail />} />
           {/* Catch-all admin routes to redirect to dashboard */}
           <Route path="" element={<Navigate to="dashboard" replace />} />
           <Route path="*" element={<Navigate to="dashboard" replace />} />

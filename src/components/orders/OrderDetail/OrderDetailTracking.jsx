@@ -3,191 +3,73 @@ import React from "react";
 function OrderDetailTracking({ order }) {
   if (!order) return null;
 
-  const baseDate = new Date(order.created_at);
+  const vendorOrders = order.vendor_orders || [];
 
-  const formatDateOffset = (days) => {
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() + days);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  };
-
-  const getSteps = () => {
-    const status = order.status;
-
-    if (status === "cancelled" || status === "refunded") {
-      return [
-        { label: "Ordered", date: formatDateOffset(0), completed: true },
-        {
-          label: status === "cancelled" ? "Cancelled" : "Refunded",
-          date: new Date(order.updated_at || order.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          completed: true,
-          error: true,
-        },
-      ];
-    }
-
-    const allSteps = [
-      { key: "pending", label: "Ordered", date: formatDateOffset(0), completed: true },
-      { key: "confirmed", label: "Confirmed", date: formatDateOffset(1), completed: false },
-      { key: "packed", label: "Packed", date: formatDateOffset(1.5), completed: false },
-      { key: "shipped", label: "Shipped", date: formatDateOffset(2), completed: false },
-      { key: "delivered", label: "Delivered", date: formatDateOffset(4), completed: false },
-    ];
-
-    // Status indices:
-    // pending -> Confirmed (no), Packed (no), etc.
-    const statusOrder = ["pending", "confirmed", "packed", "shipped", "delivered"];
-    const currentIdx = statusOrder.indexOf(status);
-
-    return allSteps.map((step, idx) => {
-      const stepIdx = statusOrder.indexOf(step.key);
-      return {
-        ...step,
-        completed: stepIdx <= currentIdx,
-        isCurrent: stepIdx === currentIdx,
-      };
-    });
-  };
-
-  const steps = getSteps();
-  const completedCount = steps.filter((s) => s.completed && !s.error).length;
-  const totalSteps = steps.length;
-  const progressPercent =
-    order.status === "cancelled" || order.status === "refunded"
-      ? "100%"
-      : `${((completedCount - 1) / (totalSteps - 1)) * 100}%`;
-
-  const isCancelled = order.status === "cancelled" || order.status === "refunded";
+  if (vendorOrders.length === 0) {
+    // Single vendor or fallback tracking
+    return (
+      <div style={{ background: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+        <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>Order Progress</h3>
+        <p style={{ fontSize: "14px", color: "#475569", margin: 0 }}>Status: <strong>{order.status_display || order.status}</strong></p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        background: "#ffffff",
-        borderRadius: "16px",
-        border: "1px solid #e2e8f0",
-        padding: "32px 24px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-      }}
-    >
-      <h3 style={{ margin: "0 0 24px 0", fontSize: "16px", fontWeight: "700", color: "#0f172a" }}>
-        Tracking details
-      </h3>
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "700", color: "#0f172a" }}>Shipment Tracking ({vendorOrders.length} Vendor Shipments)</h3>
+      {vendorOrders.map((vo) => {
+        const isCancelled = vo.status === "cancelled";
+        const isShipped = vo.status === "shipped" || vo.status === "delivered";
+        
+        const steps = [
+          { key: "confirmed", label: "Confirmed", date: vo.created_at ? new Date(vo.created_at).toLocaleDateString() : "", completed: ["confirmed", "processing", "packed", "shipped", "delivered"].includes(vo.status) },
+          { key: "processing", label: "Processing", date: "", completed: ["processing", "packed", "shipped", "delivered"].includes(vo.status) },
+          { key: "packed", label: "Packed", date: "", completed: ["packed", "shipped", "delivered"].includes(vo.status) },
+          { key: "shipped", label: "Shipped", date: vo.shipped_at ? new Date(vo.shipped_at).toLocaleDateString() : "", completed: ["shipped", "delivered"].includes(vo.status) },
+          { key: "delivered", label: "Delivered", date: vo.delivered_at ? new Date(vo.delivered_at).toLocaleDateString() : "", completed: vo.status === "delivered" },
+        ];
 
-      {/* Progress Timeline container */}
-      <div style={{ position: "relative", display: "flex", justifyContent: "space-between", width: "100%", padding: "0 10px" }}>
-        {/* Connector Line behind steps */}
-        <div
-          style={{
-            position: "absolute",
-            top: "14px",
-            left: "40px",
-            right: "40px",
-            height: "4px",
-            background: "#e2e8f0",
-            zIndex: 1,
-            borderRadius: "2px",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: progressPercent,
-              background: isCancelled ? "#ef4444" : "#4f46e5",
-              borderRadius: "2px",
-              transition: "width 0.4s ease",
-            }}
-          />
-        </div>
-
-        {/* Steps */}
-        {steps.map((step, index) => (
-          <div
-            key={index}
-            style={{
-              zIndex: 2,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              flex: 1,
-              textAlign: "center",
-              position: "relative",
-            }}
-          >
-            {/* Step Circle */}
-            <div
-              style={{
-                width: "32px",
-                height: "32px",
-                borderRadius: "50%",
-                background: step.completed
-                  ? step.error
-                    ? "#fca5a5"
-                    : "#4f46e5"
-                  : "#ffffff",
-                border: `3px solid ${
-                  step.completed
-                    ? step.error
-                      ? "#ef4444"
-                      : "#4f46e5"
-                    : "#cbd5e1"
-                }`,
-                color: step.completed ? "#ffffff" : "#64748b",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: "700",
-                fontSize: "12px",
-                boxShadow: step.isCurrent ? "0 0 0 4px rgba(79, 70, 229, 0.2)" : "0 1px 3px rgba(0,0,0,0.1)",
-                transition: "all 0.3s ease",
-              }}
-            >
-              {step.completed ? (
-                step.error ? (
-                  "✕"
-                ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                )
-              ) : (
-                index + 1
-              )}
+        return (
+          <div key={vo.id || vo.vendor_order_number} style={{ background: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0", padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+              <div>
+                <h4 style={{ margin: "0 0 4px 0", fontSize: "15px", fontWeight: "700", color: "#0f172a" }}>{vo.vendor_store_name_snapshot || "Vendor Store"}</h4>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>Sub-Order #: {vo.vendor_order_number}</span>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <span style={{ padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600", backgroundColor: isCancelled ? "#fee2e2" : isShipped ? "#dcfce7" : "#e0f2fe", color: isCancelled ? "#991b1b" : isShipped ? "#166534" : "#075985" }}>
+                  {vo.status_display || vo.status}
+                </span>
+                {vo.carrier_name && (
+                  <div style={{ fontSize: "12px", color: "#475569", marginTop: "4px" }}>
+                    Courier: <strong>{vo.carrier_name}</strong> | Tracking: <strong>{vo.tracking_number}</strong>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Labels */}
-            <span
-              style={{
-                marginTop: "12px",
-                fontSize: "14px",
-                fontWeight: step.completed ? "700" : "500",
-                color: step.completed
-                  ? step.error
-                    ? "#dc2626"
-                    : "#0f172a"
-                  : "#64748b",
-              }}
-            >
-              {step.label}
-            </span>
-            <span
-              style={{
-                fontSize: "11px",
-                color: "#94a3b8",
-                marginTop: "4px",
-                maxWidth: "90px",
-                wordBreak: "break-word",
-              }}
-            >
-              {step.completed ? step.date : "Estimated"}
-            </span>
+            {/* Timeline */}
+            {isCancelled ? (
+              <div style={{ padding: "12px", borderRadius: "8px", backgroundColor: "#fef2f2", color: "#991b1b", fontSize: "13px" }}>
+                This sub-order was cancelled. Stock has been restored to vendor inventory.
+              </div>
+            ) : (
+              <div style={{ display: "flex", justifyContent: "space-between", position: "relative", marginTop: "16px" }}>
+                {steps.map((step, idx) => (
+                  <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, textAlign: "center", zIndex: 2 }}>
+                    <div style={{ width: "28px", height: "28px", borderRadius: "50%", backgroundColor: step.completed ? "#2563eb" : "#ffffff", border: `2px solid ${step.completed ? "#2563eb" : "#cbd5e1"}`, color: step.completed ? "#ffffff" : "#64748b", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "700" }}>
+                      {step.completed ? "?" : idx + 1}
+                    </div>
+                    <span style={{ fontSize: "12px", fontWeight: step.completed ? "600" : "400", color: step.completed ? "#0f172a" : "#64748b", marginTop: "6px" }}>{step.label}</span>
+                    {step.date && <span style={{ fontSize: "10px", color: "#94a3b8" }}>{step.date}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
